@@ -1,6 +1,8 @@
 extern crate gl;
 extern crate sdl2;
 
+pub mod program_load;
+
 fn main() {
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();

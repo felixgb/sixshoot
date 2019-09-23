@@ -1,8 +1,23 @@
-pub mod program_load;
-
 use gl;
 use std;
 use std::ffi::{CString, CStr};
+
+fn program() {
+
+    let vert_shader = Shader::from_vert_source(..);
+    let frag_shader = Shader::from_frag_source(..);
+
+    let program_id = unsafe { gl::CreateProgram() };
+
+    unsafe {
+        gl::AttachShader(program_id, vert_shader.id);
+        gl::AttachShader(program_id, frag_shader.id);
+        gl::LinkProgram(program_id);
+        gl::DetachShader(program_id, vert_shader.id);
+        gl::DetachShader(program_id, frag_shader.id);
+    }
+}
+
 
 pub struct Shader {
     id: gl::types::GLuint,
@@ -13,8 +28,27 @@ impl Shader {
         source: &CStr,
         shader_type: gl::types::GLenum
     ) -> Result<Shader, String> {
-        let id = shader_from_source(source, shader_type)?;
-        Ok(id)
+        shader_from_source(source, shader_type)
+    }
+
+    pub fn from_vert_source(source: &CStr) -> Result<Shader, String> {
+        Shader::from_source(source, gl::VERTEX_SHADER)
+    }
+
+    pub fn from_frag_source(source: &CStr) -> Result<Shader, String> {
+        Shader::from_source(source, gl::FRAGMENT_SHADER)
+    }
+
+    pub fn id(&self) -> gl::types::GLuint {
+        self.id
+    }
+}
+
+impl Drop for Shader {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteShader(self.id)
+        }
     }
 }
 
