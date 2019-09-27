@@ -2,22 +2,44 @@ use gl;
 use std;
 use std::ffi::{CString, CStr};
 
-fn program() {
-
-    let vert_shader = Shader::from_vert_source(..);
-    let frag_shader = Shader::from_frag_source(..);
-
-    let program_id = unsafe { gl::CreateProgram() };
-
-    unsafe {
-        gl::AttachShader(program_id, vert_shader.id);
-        gl::AttachShader(program_id, frag_shader.id);
-        gl::LinkProgram(program_id);
-        gl::DetachShader(program_id, vert_shader.id);
-        gl::DetachShader(program_id, frag_shader.id);
-    }
+pub struct Program {
+    id: gl::types::GLuint,
 }
 
+impl Program {
+    pub fn from_shaders(vert: &Shader, frag: &Shader) -> Result<Program, String> {
+        let program_id = unsafe { gl::CreateProgram() };
+
+        unsafe {
+            gl::AttachShader(program_id, vert.id);
+            gl::AttachShader(program_id, frag.id);
+            gl::LinkProgram(program_id);
+
+            let mut success = 1;
+            gl::GetShaderiv(program_id, gl::LINK_STATUS, &mut success);
+            gl_err(program_id);
+            gl::DetachShader(program_id, vert.id);
+            gl::DetachShader(program_id, frag.id);
+        }
+
+        Ok(Program { id: program_id })
+    }
+
+    pub fn set_used(&self) {
+        unsafe {
+            gl::UseProgram(self.id);
+        }
+    }
+
+}
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.id);
+        }
+    }
+}
 
 pub struct Shader {
     id: gl::types::GLuint,
@@ -25,17 +47,18 @@ pub struct Shader {
 
 impl Shader {
     pub fn from_source(
-        source: &CStr,
+        source: &str,
         shader_type: gl::types::GLenum
     ) -> Result<Shader, String> {
-        shader_from_source(source, shader_type)
+        let cstr_src = &CString::new(source).unwrap();
+        shader_from_source(cstr_src, shader_type)
     }
 
-    pub fn from_vert_source(source: &CStr) -> Result<Shader, String> {
+    pub fn from_vert_source(source: &str) -> Result<Shader, String> {
         Shader::from_source(source, gl::VERTEX_SHADER)
     }
 
-    pub fn from_frag_source(source: &CStr) -> Result<Shader, String> {
+    pub fn from_frag_source(source: &str) -> Result<Shader, String> {
         Shader::from_source(source, gl::FRAGMENT_SHADER)
     }
 
@@ -52,7 +75,7 @@ impl Drop for Shader {
     }
 }
 
-fn gl_shader_err(id: gl::types::GLuint) -> String {
+fn gl_err(id: gl::types::GLuint) -> String {
     let mut len: gl::types::GLint = 0;
     unsafe {
         gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
@@ -92,7 +115,7 @@ fn shader_from_source(
     }
 
     if success == 0 {
-        let msg: String = gl_shader_err(id);
+        let msg: String = gl_err(id);
         Err(msg)
     } else {
         Ok(Shader { id })
