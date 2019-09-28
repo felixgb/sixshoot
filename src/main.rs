@@ -1,8 +1,9 @@
 extern crate gl;
 extern crate sdl2;
 
-pub mod program;
+pub mod render;
 pub mod resources;
+pub mod vertex;
 
 use sdl2::keyboard::Keycode;
 
@@ -29,9 +30,9 @@ fn main() {
         gl::Viewport(0, 0, 900, 700);
     }
 
-    let vert_shader = program::Shader::from_vert_source(include_str!("vert.shdr")).unwrap();
-    let frag_shader = program::Shader::from_frag_source(include_str!("frag.shdr")).unwrap();
-    let program = program::Program::from_shaders(&vert_shader, &frag_shader).unwrap();
+    let vert_shader = render::Shader::from_vert_source(include_str!("vert.shdr")).unwrap();
+    let frag_shader = render::Shader::from_frag_source(include_str!("frag.shdr")).unwrap();
+    let program = render::Program::from_shaders(&vert_shader, &frag_shader).unwrap();
 
     program.set_used();
 
@@ -43,6 +44,7 @@ fn main() {
         0.0, 0.5, 0.0,
         0.0, 0.0, 1.0,
     ];
+
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
         gl::GenBuffers(1, &mut vbo);
@@ -69,25 +71,8 @@ fn main() {
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            0, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            std::ptr::null() // offset of the first component
-        );
+        vertex::vertex_attrib_pointers();
 
-        gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
-        gl::VertexAttribPointer(
-            1, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
-        );
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
