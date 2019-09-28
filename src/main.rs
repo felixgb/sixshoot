@@ -6,6 +6,16 @@ pub mod resources;
 pub mod vertex;
 
 use sdl2::keyboard::Keycode;
+use render::buffer;
+
+fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
+    video_subsystem
+        .window("HA HA", 900, 700)
+        .opengl()
+        .resizable()
+        .build()
+        .unwrap()
+}
 
 fn main() {
     let sdl = sdl2::init().unwrap();
@@ -15,12 +25,7 @@ fn main() {
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     gl_attr.set_context_version(4, 5);
 
-    let window = video_subsystem
-        .window("HA HA", 900, 700)
-        .opengl()
-        .resizable()
-        .build()
-        .unwrap();
+    let window = create_window(&video_subsystem);
 
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
@@ -50,16 +55,10 @@ fn main() {
         gl::GenBuffers(1, &mut vbo);
     }
 
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-            vertices.as_ptr() as *const gl::types::GLvoid,
-            gl::STATIC_DRAW,
-            );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-    }
+    let vbo = buffer::ArrayBuffer::new();
+    vbo.bind();
+    vbo.static_draw_data(&vertices);
+    vbo.unbind();
 
     let mut vao: gl::types::GLuint = 0;
 
@@ -69,11 +68,11 @@ fn main() {
 
     unsafe {
         gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
 
+        vbo.bind();
         vertex::vertex_attrib_pointers();
+        vbo.unbind();
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
 
@@ -86,7 +85,7 @@ fn main() {
                 gl::TRIANGLES, // mode
                 0, // starting index in the enabled arrays
                 6 // number of indices to be rendered
-                );
+            );
         }
         for event in events.poll_iter() {
             match event {
@@ -100,4 +99,5 @@ fn main() {
 
         window.gl_swap_window();
     }
+
 }
