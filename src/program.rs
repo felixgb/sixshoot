@@ -3,35 +3,34 @@ use std;
 use std::ffi::{CString, CStr};
 
 pub struct Program {
-    gl: gl::Gl,
     id: gl::types::GLuint,
 }
 
 impl Program {
-    pub fn from_shaders(gl: &gl::Gl, vert: &Shader, frag: &Shader) -> Result<Program, String> {
-        let program_id = unsafe { gl.CreateProgram() };
+    pub fn from_shaders(vert: &Shader, frag: &Shader) -> Result<Program, String> {
+        let program_id = unsafe { gl::CreateProgram() };
 
         unsafe {
-            gl.AttachShader(program_id, vert.id);
-            gl.AttachShader(program_id, frag.id);
-            gl.LinkProgram(program_id);
+            gl::AttachShader(program_id, vert.id);
+            gl::AttachShader(program_id, frag.id);
+            gl::LinkProgram(program_id);
 
             let mut success = 1;
-            gl.GetShaderiv(program_id, gl::LINK_STATUS, &mut success);
+            gl::GetShaderiv(program_id, gl::LINK_STATUS, &mut success);
             if success == 0 {
-                let msg = gl_err(gl, program_id);
+                let msg = gl_err(program_id);
                 return Err(msg);
             }
-            gl.DetachShader(program_id, vert.id);
-            gl.DetachShader(program_id, frag.id);
+            gl::DetachShader(program_id, vert.id);
+            gl::DetachShader(program_id, frag.id);
         }
 
-        Ok(Program { gl: gl.clone(), id: program_id })
+        Ok(Program { id: program_id })
     }
 
     pub fn set_used(&self) {
         unsafe {
-            self.gl.UseProgram(self.id);
+            gl::UseProgram(self.id);
         }
     }
 
@@ -40,32 +39,30 @@ impl Program {
 impl Drop for Program {
     fn drop(&mut self) {
         unsafe {
-            self.gl.DeleteProgram(self.id);
+            gl::DeleteProgram(self.id);
         }
     }
 }
 
 pub struct Shader {
-    gl: gl::Gl,
     id: gl::types::GLuint,
 }
 
 impl Shader {
     pub fn from_source(
-        gl: &gl::Gl,
         source: &str,
         shader_type: gl::types::GLenum
     ) -> Result<Shader, String> {
         let cstr_src = &CString::new(source).unwrap();
-        shader_from_source(gl, cstr_src, shader_type)
+        shader_from_source(cstr_src, shader_type)
     }
 
-    pub fn from_vert_source(gl: &gl::Gl, source: &str) -> Result<Shader, String> {
-        Shader::from_source(gl, source, gl::VERTEX_SHADER)
+    pub fn from_vert_source(source: &str) -> Result<Shader, String> {
+        Shader::from_source(source, gl::VERTEX_SHADER)
     }
 
-    pub fn from_frag_source(gl: &gl::Gl, source: &str) -> Result<Shader, String> {
-        Shader::from_source(gl, source, gl::FRAGMENT_SHADER)
+    pub fn from_frag_source(source: &str) -> Result<Shader, String> {
+        Shader::from_source(source, gl::FRAGMENT_SHADER)
     }
 
 }
@@ -73,21 +70,21 @@ impl Shader {
 impl Drop for Shader {
     fn drop(&mut self) {
         unsafe {
-            self.gl.DeleteShader(self.id)
+            gl::DeleteShader(self.id)
         }
     }
 }
 
-fn gl_err(gl: &gl::Gl, id: gl::types::GLuint) -> String {
+fn gl_err(id: gl::types::GLuint) -> String {
     let mut len: gl::types::GLint = 0;
     unsafe {
-        gl.GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
+        gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
     }
 
     let error = create_whitespace_cstring_with_len(len as usize);
 
     unsafe {
-        gl.GetShaderInfoLog(
+        gl::GetShaderInfoLog(
             id,
             len,
             std::ptr::null_mut(),
@@ -105,24 +102,23 @@ fn create_whitespace_cstring_with_len(len: usize) -> CString {
 }
 
 fn shader_from_source(
-    gl: &gl::Gl,
     source: &CStr,
     shader_type: gl::types::GLuint
 ) -> Result<Shader, String> {
-    let id = unsafe { gl.CreateShader(shader_type) };
+    let id = unsafe { gl::CreateShader(shader_type) };
 
     let mut success: gl::types::GLint = 1;
     unsafe {
-        gl.ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
-        gl.CompileShader(id);
-        gl.GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
+        gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
+        gl::CompileShader(id);
+        gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
     }
 
     if success == 0 {
-        let msg: String = gl_err(gl, id);
+        let msg = gl_err(id);
         Err(msg)
     } else {
-        Ok(Shader { gl: gl.clone(), id })
+        Ok(Shader { id })
     }
 }
 
