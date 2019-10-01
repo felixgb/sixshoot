@@ -1,3 +1,4 @@
+extern crate nalgebra;
 extern crate gl;
 extern crate sdl2;
 
@@ -5,8 +6,16 @@ pub mod render;
 pub mod resources;
 pub mod vertex;
 
+use nalgebra::Rotation;
 use sdl2::keyboard::Keycode;
 use render::buffer;
+use std::ffi::{CString, CStr};
+
+macro_rules! c_str {
+    ($literal:expr) => {
+        CStr::from_bytes_with_nul_unchecked(concat!($literal, "\0").as_bytes())
+    }
+}
 
 fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
     video_subsystem
@@ -40,6 +49,15 @@ fn main() {
     let program = render::Program::from_shaders(&vert_shader, &frag_shader).unwrap();
 
     program.set_used();
+
+    unsafe {
+        let transform = gl::GetUniformLocation(
+            program.id,
+            c_str!("transform").as_ptr()
+        );
+        let rot = Rotation::from_euler_angles(2.0, 0.0, 0.0);
+        gl::UniformTransformMatrix4fv(program.id, 1, GL_FALSE, rot.as_slice())
+    };
 
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
