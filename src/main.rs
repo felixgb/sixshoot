@@ -6,10 +6,10 @@ pub mod render;
 pub mod resources;
 pub mod vertex;
 
-use nalgebra::Rotation;
+use nalgebra::Matrix4;
 use sdl2::keyboard::Keycode;
 use render::buffer;
-use std::ffi::{CString, CStr};
+use std::ffi::CStr;
 
 macro_rules! c_str {
     ($literal:expr) => {
@@ -55,9 +55,17 @@ fn main() {
             program.id,
             c_str!("transform").as_ptr()
         );
-        let rot = Rotation::from_euler_angles(2.0, 0.0, 0.0);
-        gl::UniformTransformMatrix4fv(program.id, 1, GL_FALSE, rot.as_slice())
-    };
+        let rot = Matrix4::from_euler_angles(1.0, 0.0, 0.0);
+
+        let mut a: Vec<f32> = Vec::new();
+        for i in 0..4 {
+            for j in 0..4 {
+                a.push(*rot.get_unchecked(i * j + i));
+            }
+        }
+        println!("{:?}", a);
+        gl::UniformMatrix4fv(transform, 1, gl::FALSE, a.as_ptr())
+    }
 
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
@@ -100,9 +108,9 @@ fn main() {
         unsafe {
             gl::BindVertexArray(vao);
             gl::DrawArrays(
-                gl::TRIANGLES, // mode
-                0, // starting index in the enabled arrays
-                6 // number of indices to be rendered
+                gl::TRIANGLES,
+                0,
+                6
             );
         }
         for event in events.poll_iter() {
