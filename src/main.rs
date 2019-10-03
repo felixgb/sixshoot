@@ -26,6 +26,17 @@ fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window 
         .unwrap()
 }
 
+fn set_uniform_matrix4fv(location: i32, value: &nalgebra::Matrix4<f32>) {
+    unsafe {
+        gl::UniformMatrix4fv(
+            location,
+            1,
+            gl::FALSE,
+            value.as_slice().as_ptr() as *const f32
+        );
+    }
+}
+
 fn main() {
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
@@ -50,22 +61,12 @@ fn main() {
 
     program.set_used();
 
-    unsafe {
-        let transform = gl::GetUniformLocation(
+    let transform = unsafe {
+        gl::GetUniformLocation(
             program.id,
             c_str!("transform").as_ptr()
-        );
-        let rot = Matrix4::from_euler_angles(1.0, 0.0, 0.0);
-
-        let mut a: Vec<f32> = Vec::new();
-        for i in 0..4 {
-            for j in 0..4 {
-                a.push(*rot.get_unchecked(i * j + i));
-            }
-        }
-        println!("{:?}", a);
-        gl::UniformMatrix4fv(transform, 1, gl::FALSE, a.as_ptr())
-    }
+        )
+    };
 
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
@@ -103,6 +104,7 @@ fn main() {
     }
 
     let mut events = sdl.event_pump().unwrap();
+    let mut iter = 0.0;
 
     'main: loop {
         unsafe {
@@ -123,7 +125,13 @@ fn main() {
             }
         }
 
+        let rot = Matrix4::from_euler_angles(0.0, 0.0, 0.0 + iter);
+        set_uniform_matrix4fv(transform, &rot);
         window.gl_swap_window();
+        iter = iter + 0.01;
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
     }
 
 }
