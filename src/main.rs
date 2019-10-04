@@ -3,7 +3,7 @@ extern crate gl;
 extern crate sdl2;
 
 pub mod render;
-pub mod resources;
+pub mod obj;
 pub mod vertex;
 
 use nalgebra::Matrix4;
