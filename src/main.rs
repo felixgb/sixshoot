@@ -7,13 +7,14 @@ pub mod obj;
 pub mod vertex;
 pub mod uniform;
 
-use nalgebra::Matrix4;
+use nalgebra::*;
+use nalgebra as na;
 use sdl2::keyboard::Keycode;
 use render::buffer;
 
 fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
     video_subsystem
-        .window("HA HA", 900, 700)
+        .window("HA HA", 1920, 1080)
         .opengl()
         .resizable()
         .build()
@@ -35,7 +36,7 @@ fn main() {
     let _gl_context = window.gl_create_context().unwrap();
 
     unsafe {
-        gl::Viewport(0, 0, 900, 700);
+        gl::Viewport(0, 0, 1920, 1080);
     }
 
     let vert_shader = render::Shader::from_vert_source(include_str!("vert.shdr")).unwrap();
@@ -44,19 +45,51 @@ fn main() {
 
     program.set_used();
 
-    let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
+    let vertices = obj::read_lines().unwrap().compute_faces();
+    // let vertices: Vec<f32> = vec![
+    //     -0.5, -0.5, -0.5,
+    //     0.5, -0.5, -0.5,
+    //     0.5,  0.5, -0.5,
 
-    // let vertices = obj::read_lines().unwrap().compute_faces();
-    let vertices: Vec<f32> = vec![
-        0.5,  0.5, 0.0,
-        0.5, -0.5, 0.0,
-        -0.5,  0.5, 0.0,
+    //     0.5,  0.5, -0.5,
+    //     -0.5,  0.5, -0.5,
+    //     -0.5, -0.5, -0.5,
 
+    //     -0.5, -0.5,  0.5,
+    //     0.5, -0.5,  0.5,
+    //     0.5,  0.5,  0.5,
+    //     0.5,  0.5,  0.5,
+    //     -0.5,  0.5,  0.5,
+    //     -0.5, -0.5,  0.5,
 
-        0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        -0.5,  0.5, 0.0,
-    ];
+    //     -0.5,  0.5,  0.5,
+    //     -0.5,  0.5, -0.5,
+    //     -0.5, -0.5, -0.5,
+    //     -0.5, -0.5, -0.5,
+    //     -0.5, -0.5,  0.5,
+    //     -0.5,  0.5,  0.5,
+
+    //     0.5,  0.5,  0.5,
+    //     0.5,  0.5, -0.5,
+    //     0.5, -0.5, -0.5,
+    //     0.5, -0.5, -0.5,
+    //     0.5, -0.5,  0.5,
+    //     0.5,  0.5,  0.5,
+
+    //     -0.5, -0.5, -0.5,
+    //     0.5, -0.5, -0.5,
+    //     0.5, -0.5,  0.5,
+    //     0.5, -0.5,  0.5,
+    //     -0.5, -0.5,  0.5,
+    //     -0.5, -0.5, -0.5,
+
+    //     -0.5,  0.5, -0.5,
+    //     0.5,  0.5, -0.5,
+    //     0.5,  0.5,  0.5,
+    //     0.5,  0.5,  0.5,
+    //     -0.5,  0.5,  0.5,
+    //     -0.5,  0.5, -0.5,
+    // ];
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -87,6 +120,12 @@ fn main() {
     let mut events = sdl.event_pump().unwrap();
     let mut iter = 0.0;
 
+    let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
+
+    unsafe {
+        gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+    }
+
     'main: loop {
         unsafe {
             gl::BindVertexArray(vao);
@@ -106,12 +145,21 @@ fn main() {
             }
         }
 
-        let rot = Matrix4::from_euler_angles(0.0, 0.0, 0.0 + iter);
-        transform.set_uniform_matrix4fv(&rot);
+        let rot = Rotation3::from_euler_angles(-1.57, 1.57 + iter, 0.0);
+        let model = rot.to_homogeneous() * Isometry3::identity().to_homogeneous();
+
+        let camera_pos = Point3::new(400.0, 0.0, 0.0);
+        let camera_dir = Point3::new(1.0, 0.0, 0.0);
+        let view = Isometry3::look_at_rh(&camera_pos, &camera_dir, &Vector3::y()).to_homogeneous();
+        let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 1.0, 1000.0);
+        let model_view_projection = projection.into_inner() * view * model;
+
+        transform.set_uniform_matrix4fv(&model_view_projection);
+
         window.gl_swap_window();
-        iter = iter + 0.01;
+        iter = iter + 0.05;
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
     }
 
