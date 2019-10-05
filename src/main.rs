@@ -5,17 +5,11 @@ extern crate sdl2;
 pub mod render;
 pub mod obj;
 pub mod vertex;
+pub mod uniform;
 
 use nalgebra::Matrix4;
 use sdl2::keyboard::Keycode;
 use render::buffer;
-use std::ffi::CStr;
-
-macro_rules! c_str {
-    ($literal:expr) => {
-        CStr::from_bytes_with_nul_unchecked(concat!($literal, "\0").as_bytes())
-    }
-}
 
 fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
     video_subsystem
@@ -24,17 +18,6 @@ fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window 
         .resizable()
         .build()
         .unwrap()
-}
-
-fn set_uniform_matrix4fv(location: i32, value: &nalgebra::Matrix4<f32>) {
-    unsafe {
-        gl::UniformMatrix4fv(
-            location,
-            1,
-            gl::FALSE,
-            value.as_slice().as_ptr() as *const f32
-        );
-    }
 }
 
 fn main() {
@@ -61,20 +44,18 @@ fn main() {
 
     program.set_used();
 
-    let transform = unsafe {
-        gl::GetUniformLocation(
-            program.id,
-            c_str!("transform").as_ptr()
-        )
-    };
+    let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
 
+    // let vertices = obj::read_lines().unwrap().compute_faces();
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,
-        1.0, 0.0, 0.0,
+        0.5,  0.5, 0.0,
         0.5, -0.5, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.5, 0.0,
-        0.0, 0.0, 1.0,
+        -0.5,  0.5, 0.0,
+
+
+        0.5, -0.5, 0.0,
+        -0.5, -0.5, 0.0,
+        -0.5,  0.5, 0.0,
     ];
 
     let mut vbo: gl::types::GLuint = 0;
@@ -112,7 +93,7 @@ fn main() {
             gl::DrawArrays(
                 gl::TRIANGLES,
                 0,
-                6
+                (vertices.len() / 3) as i32
             );
         }
         for event in events.poll_iter() {
@@ -126,7 +107,7 @@ fn main() {
         }
 
         let rot = Matrix4::from_euler_angles(0.0, 0.0, 0.0 + iter);
-        set_uniform_matrix4fv(transform, &rot);
+        transform.set_uniform_matrix4fv(&rot);
         window.gl_swap_window();
         iter = iter + 0.01;
         unsafe {

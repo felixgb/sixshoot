@@ -80,17 +80,16 @@ fn read_face_part(token: &str) -> io::Result<usize> {
 }
 
 mod tests {
-    use super::*;
 
     #[test]
     fn reads_file() {
-        let result = read_lines();
+        let result = super::read_lines();
         assert_eq!(result.is_ok(), true);
     }
 
     #[test]
     fn get_correct_num_verts() {
-        let result = read_lines();
+        let result = super::read_lines();
         assert_eq!(result.is_ok(), true);
 
         assert_eq!(result.unwrap().vertices.len(), 62081 * 3);
@@ -98,7 +97,7 @@ mod tests {
 
     #[test]
     fn get_correct_first_vert() {
-        let result = read_lines().unwrap();
+        let result = super::read_lines().unwrap();
 
         assert_eq!(result.vertices[0], 28.07870);
         assert_eq!(result.vertices[1], -157.42495);
@@ -107,7 +106,7 @@ mod tests {
 
     #[test]
     fn get_correct_num_faces() {
-        let result = read_lines();
+        let result = super::read_lines();
         assert_eq!(result.is_ok(), true);
 
         assert_eq!(result.unwrap().face_indices.len(), 113156 * 3); 
@@ -115,7 +114,7 @@ mod tests {
 
     #[test]
     fn compute_first_face() {
-        let result = read_lines().unwrap();
+        let result = super::read_lines().unwrap();
 
         let faces = result.compute_faces();
          
