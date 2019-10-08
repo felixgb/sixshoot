@@ -6,9 +6,9 @@ pub mod render;
 pub mod obj;
 pub mod vertex;
 pub mod uniform;
+pub mod model;
 
 use nalgebra::*;
-use nalgebra as na;
 use sdl2::keyboard::Keycode;
 use render::buffer;
 
@@ -45,64 +45,17 @@ fn main() {
 
     program.set_used();
 
-    let vertices = obj::read_lines().unwrap().compute_faces();
-    // let vertices: Vec<f32> = vec![
-    //     -0.5, -0.5, -0.5,
-    //     0.5, -0.5, -0.5,
-    //     0.5,  0.5, -0.5,
+    // let vertices = obj::read_lines().unwrap().compute_faces();
 
-    //     0.5,  0.5, -0.5,
-    //     -0.5,  0.5, -0.5,
-    //     -0.5, -0.5, -0.5,
-
-    //     -0.5, -0.5,  0.5,
-    //     0.5, -0.5,  0.5,
-    //     0.5,  0.5,  0.5,
-    //     0.5,  0.5,  0.5,
-    //     -0.5,  0.5,  0.5,
-    //     -0.5, -0.5,  0.5,
-
-    //     -0.5,  0.5,  0.5,
-    //     -0.5,  0.5, -0.5,
-    //     -0.5, -0.5, -0.5,
-    //     -0.5, -0.5, -0.5,
-    //     -0.5, -0.5,  0.5,
-    //     -0.5,  0.5,  0.5,
-
-    //     0.5,  0.5,  0.5,
-    //     0.5,  0.5, -0.5,
-    //     0.5, -0.5, -0.5,
-    //     0.5, -0.5, -0.5,
-    //     0.5, -0.5,  0.5,
-    //     0.5,  0.5,  0.5,
-
-    //     -0.5, -0.5, -0.5,
-    //     0.5, -0.5, -0.5,
-    //     0.5, -0.5,  0.5,
-    //     0.5, -0.5,  0.5,
-    //     -0.5, -0.5,  0.5,
-    //     -0.5, -0.5, -0.5,
-
-    //     -0.5,  0.5, -0.5,
-    //     0.5,  0.5, -0.5,
-    //     0.5,  0.5,  0.5,
-    //     0.5,  0.5,  0.5,
-    //     -0.5,  0.5,  0.5,
-    //     -0.5,  0.5, -0.5,
-    // ];
-
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo);
-    }
+    let cube = model::Model::test_cube_model();
 
     let vbo = buffer::ArrayBuffer::new();
+
     vbo.bind();
-    vbo.static_draw_data(&vertices);
+    vbo.static_draw_data(&cube.faces);
     vbo.unbind();
 
     let mut vao: gl::types::GLuint = 0;
-
     unsafe {
         gl::GenVertexArrays(1, &mut vao);
     }
@@ -126,15 +79,14 @@ fn main() {
         gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     }
 
+    let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 1.0, 1000.0);
+
     'main: loop {
         unsafe {
             gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES,
-                0,
-                (vertices.len() / 3) as i32
-            );
         }
+        vertex::draw_arrays(&cube.faces);
+
         for event in events.poll_iter() {
             match event {
                 sdl2::event::Event::Quit {..} => break 'main,
@@ -148,10 +100,9 @@ fn main() {
         let rot = Rotation3::from_euler_angles(-1.57, 1.57 + iter, 0.0);
         let model = rot.to_homogeneous() * Isometry3::identity().to_homogeneous();
 
-        let camera_pos = Point3::new(400.0, 0.0, 0.0);
+        let camera_pos = Point3::new(3.0, 0.0, 0.0);
         let camera_dir = Point3::new(1.0, 0.0, 0.0);
         let view = Isometry3::look_at_rh(&camera_pos, &camera_dir, &Vector3::y()).to_homogeneous();
-        let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 1.0, 1000.0);
         let model_view_projection = projection.into_inner() * view * model;
 
         transform.set_uniform_matrix4fv(&model_view_projection);
