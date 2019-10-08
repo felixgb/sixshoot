@@ -10,7 +10,6 @@ pub mod model;
 
 use nalgebra::*;
 use sdl2::keyboard::Keycode;
-use render::buffer;
 
 fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
     video_subsystem
@@ -47,28 +46,11 @@ fn main() {
 
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
-    let cube = model::Model::test_cube_model();
-
-    let vbo = buffer::ArrayBuffer::new();
-
-    vbo.bind();
-    vbo.static_draw_data(&cube.faces);
-    vbo.unbind();
-
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-    }
-
-    unsafe {
-        gl::BindVertexArray(vao);
-
-        vbo.bind();
-        vertex::vertex_attrib_pointers();
-        vbo.unbind();
-
-        gl::BindVertexArray(0);
-    }
+    let cubes = vec![
+        model::Model::test_cube_model(Point3::new(0.0, 0.0, -3.0)),
+        model::Model::test_cube_model(Point3::new(0.0, 0.0, 0.0)),
+        model::Model::test_cube_model(Point3::new(0.0, 0.0, 3.0)),
+    ];
 
     let mut events = sdl.event_pump().unwrap();
     let mut iter = 0.0;
@@ -82,11 +64,6 @@ fn main() {
     let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 1.0, 1000.0);
 
     'main: loop {
-        unsafe {
-            gl::BindVertexArray(vao);
-        }
-        vertex::draw_arrays(&cube.faces);
-
         for event in events.poll_iter() {
             match event {
                 sdl2::event::Event::Quit {..} => break 'main,
@@ -97,18 +74,25 @@ fn main() {
             }
         }
 
-        let rot = Rotation3::from_euler_angles(-1.57, 1.57 + iter, 0.0);
-        let model = rot.to_homogeneous() * Isometry3::identity().to_homogeneous();
-
-        let camera_pos = Point3::new(3.0, 0.0, 0.0);
+        let camera_pos = Point3::new(0.0, 2.5, 5.0);
         let camera_dir = Point3::new(1.0, 0.0, 0.0);
-        let view = Isometry3::look_at_rh(&camera_pos, &camera_dir, &Vector3::y()).to_homogeneous();
-        let model_view_projection = projection.into_inner() * view * model;
+        let view = Isometry3::look_at_rh(&camera_pos, &camera_dir, &Vector3::y());
 
-        transform.set_uniform_matrix4fv(&model_view_projection);
+        for cube in &cubes {
+            let trans = Translation3::new(cube.position.x, cube.position.y, cube.position.z);
+            let rot = UnitQuaternion::from_euler_angles(-1.57, 1.57 + iter, 0.0);
+            let model = Isometry3::from_parts(trans, rot);
+
+            let model_view_projection = projection.into_inner() * (view * model).to_homogeneous();
+
+            transform.set_uniform_matrix4fv(&model_view_projection);
+
+            cube.draw();
+        }
 
         window.gl_swap_window();
         iter = iter + 0.05;
+
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }

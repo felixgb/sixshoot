@@ -26,8 +26,8 @@ fn vertex_attrib_pointer(location: usize, stride: usize, offset: usize) {
     }
 }
 
-pub fn draw_arrays(vertices: &Vec<f32>) {
+pub fn draw_arrays(num_faces: usize) {
     unsafe {
-        gl::DrawArrays(gl::TRIANGLES, 0, (vertices.len() / 3) as i32);
+        gl::DrawArrays(gl::TRIANGLES, 0, num_faces as i32);
     }
 }
