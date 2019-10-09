@@ -1,3 +1,4 @@
+#![feature(clamp)]
 extern crate nalgebra;
 extern crate gl;
 extern crate sdl2;
@@ -10,6 +11,7 @@ pub mod model;
 
 use nalgebra::*;
 use sdl2::keyboard::Keycode;
+use std::time::SystemTime;
 
 fn create_window(video_subsystem: &sdl2::VideoSubsystem) -> sdl2::video::Window {
     video_subsystem
@@ -29,6 +31,7 @@ fn main() {
     gl_attr.set_context_version(4, 5);
 
     let window = create_window(&video_subsystem);
+    sdl.mouse().set_relative_mouse_mode(true);
 
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
@@ -63,27 +66,75 @@ fn main() {
 
     let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 1.0, 1000.0);
 
+    let mut camera_pos: Vector3<f32> = Vector3::new(0.0, 0.0, 10.0);
+    let mut camera_front: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
+    let camera_up = Vector3::y();
+
+    let mut delta_time;
+    let mut last_frame = 0.0;
+    let start = SystemTime::now();
+
+    let mut last_x = 0;
+    let mut last_y = 0;
+
+    let mut yaw = 180.0;
+    let mut pitch = 0.0;
+
+    let sensitivity = 0.5;
     'main: loop {
+        let current_time = SystemTime::now().duration_since(start).unwrap().as_millis() as f32;
+        delta_time = current_time - last_frame;
+        last_frame = current_time;
+        let camera_speed = 0.005 * delta_time;
+
         for event in events.poll_iter() {
             match event {
                 sdl2::event::Event::Quit {..} => break 'main,
-                sdl2::event::Event::KeyDown { keycode: Some(Keycode::Q), .. } => break 'main,
-                e => {
-                    println!("{:?}", e);
+                sdl2::event::Event::MouseMotion { x, y, .. } => {
+                    let x_offset = (x - last_x) as f32 * sensitivity;
+                    let y_offset = (last_y - y) as f32 * sensitivity;
+                    last_x = x;
+                    last_y = y;
+                    yaw += x_offset;
+                    pitch += y_offset;
+                    pitch = pitch.clamp(-89.0, 89.0);
+
+                    let front = Vector3::new(
+                        yaw.to_radians().cos() * pitch.to_radians().cos(),
+                        pitch.to_radians().sin(),
+                        yaw.to_radians().sin() * pitch.to_radians().cos()
+                    );
+                    camera_front = front.normalize();
+                }
+                sdl2::event::Event::KeyDown { keycode: Some(key), .. } => match key {
+                    Keycode::Q => break 'main,
+                    Keycode::W => {
+                        camera_pos += camera_speed * camera_front;
+                    },
+                    Keycode::A => {
+                        camera_pos -= camera_front.cross(&camera_up).normalize() * camera_speed;
+                    },
+                    Keycode::S => {
+                        camera_pos -= camera_speed * camera_front;
+                    },
+                    Keycode::D => {
+                        camera_pos += camera_front.cross(&camera_up).normalize() * camera_speed;
+                    },
+                    _ => { },
                 },
+                _ => { }
             }
         }
 
-        let camera_pos = Point3::new(0.0, 2.5, 5.0);
-        let camera_dir = Point3::new(1.0, 0.0, 0.0);
-        let view = Isometry3::look_at_rh(&camera_pos, &camera_dir, &Vector3::y());
+        let p = Point3::from(camera_pos);
+        let v = Point3::from(camera_pos + camera_front);
+        let view = Isometry3::look_at_rh(&p, &v, &camera_up).to_homogeneous();
 
         for cube in &cubes {
-            let trans = Translation3::new(cube.position.x, cube.position.y, cube.position.z);
-            let rot = UnitQuaternion::from_euler_angles(-1.57, 1.57 + iter, 0.0);
-            let model = Isometry3::from_parts(trans, rot);
+            let rot = Rotation3::from_euler_angles(0.0, iter, 0.0);
 
-            let model_view_projection = projection.into_inner() * (view * model).to_homogeneous();
+            let model = cube.isometry.to_homogeneous() * rot.to_homogeneous();
+            let model_view_projection = projection.into_inner() * view * model;
 
             transform.set_uniform_matrix4fv(&model_view_projection);
 

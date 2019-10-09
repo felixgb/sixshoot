@@ -6,10 +6,9 @@ use super::render::buffer;
 // each model has one VAO, and one VBO for position and color
 
 pub struct Model {
-    pub position: Point3<f32>,
-    pub rotation: UnitQuaternion<f32>,
+    pub isometry: Isometry3<f32>,
     num_verts: usize,
-    position_vbo: buffer::ArrayBuffer,
+    _position_vbo: buffer::ArrayBuffer,
     vao: u32,
 }
 
@@ -34,10 +33,12 @@ impl Model {
         }
 
         Model { 
-            position: pos,
-            rotation: UnitQuaternion::identity(),
+            isometry: Isometry3::from_parts(
+                          Translation3::new(pos.x, pos.y, pos.z),
+                          UnitQuaternion::identity()
+                      ),
             num_verts: (faces.len() / 3),
-            position_vbo: vbo,
+            _position_vbo: vbo,
             vao: vao,
         }
     }
