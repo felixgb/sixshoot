@@ -8,6 +8,7 @@ mod uniform;
 mod model;
 mod camera;
 mod controls;
+mod collide;
 
 use glfw::*;
 use nalgebra::*;
@@ -69,12 +70,11 @@ fn main() {
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
     let cubes = vec![
-        model::Model::test_cube_model(Point3::new(-3.0, 0.0, 0.0)),
-        model::Model::test_cube_model(Point3::new(0.0, 0.0, 0.0)),
-        model::Model::test_cube_model(Point3::new(3.0, 0.0, 0.0)),
+        model::Model::floor_model(),
+        model::Model::test_cube_model(Point3::new(-5.0, 1.5, 0.0)),
+        model::Model::test_cube_model(Point3::new(0.0, 1.5, 0.0)),
+        model::Model::test_cube_model(Point3::new(5.0, 1.5, 0.0)),
     ];
-
-    let mut iter = 0.0;
 
     let program = render::Program::use_program_from_sources("src/vert.shdr", "src/frag.shdr");
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
@@ -83,7 +83,7 @@ fn main() {
         gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     }
 
-    let projection = Perspective3::new(16.0 / 9.0, std::f32::consts::PI / 2.0, 0.1, 1000.0);
+    let projection = Perspective3::new(16.0 / 9.0, std::f32::consts::PI / 3.0, 0.1, 1000.0);
 
     let mut camera = camera::Camera::new();
     let mut controls = controls::Controls::new(&mut camera);
@@ -107,22 +107,18 @@ fn main() {
                 _ => { }
             }
         }
-        controls.update(delta_millis);
+        controls.update(delta_millis, &cubes);
 
         let view = controls.camera.view();
 
         for cube in &cubes {
-            let rot = Rotation3::from_euler_angles(0.0, iter, 0.0);
-
-            let model = cube.isometry.to_homogeneous() * rot.to_homogeneous();
+            let model = cube.isometry.to_homogeneous();
             let model_view_projection = projection.into_inner() * view * model;
 
             transform.set_uniform_matrix4fv(&model_view_projection);
 
             cube.draw();
         }
-
-        iter += 0.05;
 
         window.swap_buffers();
         unsafe {

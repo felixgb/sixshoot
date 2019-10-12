@@ -1,7 +1,8 @@
 use super::camera;
-use nalgebra::Vector3;
+use nalgebra::{Vector3, Point3};
 use glfw::{Key, Action};
 use std::collections::HashSet;
+use super::model::Model;
 
 const SENSITIVITY: f32 = 0.5;
 
@@ -53,22 +54,32 @@ impl<'a> Controls<'a> {
         self.camera.front = front.normalize()
     }
 
-    pub fn update(&mut self, delta_millis: f32) {
+    pub fn update(&mut self, delta_millis: f32, models: &Vec<Model>) {
         let forward = self.pressed.contains(&Key::W);
         let backward = self.pressed.contains(&Key::S);
         let left = self.pressed.contains(&Key::A);
         let right = self.pressed.contains(&Key::D);
-        let camera_speed = 0.005 * delta_millis;
+        let camera_speed = 0.01 * delta_millis;
 
+        let mut new_pos = self.camera.pos.clone();
         if forward {
-            self.camera.pos += camera_speed * self.camera.front;
+            new_pos += camera_speed * self.camera.front;
         } else if backward {
-            self.camera.pos -= camera_speed * self.camera.front;
+            new_pos -= camera_speed * self.camera.front;
         }
         if right {
-            self.camera.pos += self.camera.front.cross(&self.camera.up).normalize() * camera_speed;
+            new_pos += self.camera.front.cross(&self.camera.up).normalize() * camera_speed;
         } else if left {
-            self.camera.pos -= self.camera.front.cross(&self.camera.up).normalize() * camera_speed;
+            new_pos -= self.camera.front.cross(&self.camera.up).normalize() * camera_speed;
+        }
+        new_pos.y = 2.0;
+        let mut is_colliding = false;
+        for m in models {
+            let p = Point3::from(new_pos);
+            is_colliding = is_colliding || m.collides_with(p);
+        }
+        if !is_colliding {
+            self.camera.pos = new_pos;
         }
     }
 
