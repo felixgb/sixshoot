@@ -13,7 +13,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(faces: &Vec<f32>, pos: Point3<f32>) -> Model {
+    pub fn new(faces: &[f32], pos: Point3<f32>) -> Model {
         let vbo = buffer::ArrayBuffer::new();
 
         vbo.bind();
@@ -39,7 +39,7 @@ impl Model {
                       ),
             num_verts: (faces.len() / 3),
             _position_vbo: vbo,
-            vao: vao,
+            vao,
         }
     }
 

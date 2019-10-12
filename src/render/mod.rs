@@ -1,4 +1,4 @@
 pub mod buffer;
-mod shader;
+mod shader_program;
 
-pub use self::shader::{Shader, Program};
+pub use self::shader_program::{Shader, Program};

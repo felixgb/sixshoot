@@ -41,7 +41,7 @@ impl ArrayBuffer {
 impl Drop for ArrayBuffer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteBuffers(1, &mut self.vbo);
+            gl::DeleteBuffers(1, &self.vbo);
         }
     }
 }

@@ -1,4 +1,5 @@
 use gl;
+use std::fs;
 use std;
 use std::ffi::{CString, CStr};
 
@@ -32,6 +33,24 @@ impl Program {
         unsafe {
             gl::UseProgram(self.id);
         }
+    }
+
+    pub fn use_program_from_sources(
+        vertex_path: &str,
+        fragment_path: &str
+    ) -> Program {
+        let vertex_src = fs::read_to_string(vertex_path).unwrap();
+        let fragment_src = fs::read_to_string(fragment_path).unwrap();
+        let vert_shader = Shader::from_vert_source(&vertex_src).unwrap();
+        let frag_shader = Shader::from_frag_source(&fragment_src).unwrap();
+        let program =
+            Program::from_shaders(
+                &vert_shader,
+                &frag_shader
+            ).unwrap();
+
+        program.set_used();
+        program
     }
 
 }
@@ -92,7 +111,7 @@ fn gl_err(id: gl::types::GLuint) -> String {
             );
     }
 
-    return error.to_string_lossy().into_owned();
+    error.to_string_lossy().into_owned()
 }
 
 fn create_whitespace_cstring_with_len(len: usize) -> CString {

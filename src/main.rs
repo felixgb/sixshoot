@@ -2,22 +2,23 @@ extern crate gl;
 extern crate glfw;
 extern crate nalgebra;
 
-pub mod render;
-pub mod obj;
-pub mod vertex;
-pub mod uniform;
-pub mod model;
+mod render;
+mod vertex;
+mod uniform;
+mod model;
+mod camera;
 
-use nalgebra::*;
-use std::time::SystemTime;
 use glfw::*;
+use nalgebra::*;
+use std::sync::mpsc::Receiver;
+use std::time::SystemTime;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
 
-fn main() {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+type Events = Receiver<(f64, WindowEvent)>;
 
+fn create_window(glfw: Glfw) -> (Window, Events) {
     let (mut window, events) = glfw.create_window(
         WIDTH,
         HEIGHT,
@@ -32,19 +33,18 @@ fn main() {
     window.set_key_polling(true);
     window.make_current();
 
-    let _gl =
-        gl::load_with(|s| window.get_proc_address(s) as *const std::os::raw::c_void);
+    (window, events)
+}
+
+fn main() {
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    let (mut window, events) = create_window(glfw);
+
+    gl::load_with(|s| window.get_proc_address(s) as *const std::os::raw::c_void);
 
     unsafe {
         gl::Viewport(0, 0, 1920, 1080);
     }
-
-    let vert_shader = render::Shader::from_vert_source(include_str!("vert.shdr")).unwrap();
-    let frag_shader = render::Shader::from_frag_source(include_str!("frag.shdr")).unwrap();
-    let program = render::Program::from_shaders(&vert_shader, &frag_shader).unwrap();
-
-    program.set_used();
-
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
     let cubes = vec![
@@ -55,18 +55,16 @@ fn main() {
 
     let mut iter = 0.0;
 
+    let program = render::Program::use_program_from_sources("src/vert.shdr", "src/frag.shdr");
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
 
     unsafe {
         gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     }
 
-    let projection = Perspective3::new(16.0 / 9.0, 3.14 / 2.0, 0.1, 1000.0);
+    let projection = Perspective3::new(16.0 / 9.0, std::f32::consts::PI / 2.0, 0.1, 1000.0);
 
-    let mut camera_pos: Vector3<f32> = Vector3::new(0.0, 0.0, -10.0);
-    let mut camera_front: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
-    let camera_up = Vector3::y();
-
+    let mut camera = camera::Camera::new();
     let mut delta_time;
     let mut last_frame = 0.0;
     let start = SystemTime::now();
@@ -82,8 +80,10 @@ fn main() {
     let mut right = false;
     let mut backward = false;
     let mut left = false;
+
     while !window.should_close() {
-        let current_time = SystemTime::now().duration_since(start).unwrap().as_millis() as f32;
+        let current_time =
+            SystemTime::now().duration_since(start).unwrap().as_millis() as f32;
         delta_time = current_time - last_frame;
         last_frame = current_time;
         let camera_speed = 0.005 * delta_time;
@@ -112,7 +112,7 @@ fn main() {
                         pitch.to_radians().sin(),
                         yaw.to_radians().sin() * pitch.to_radians().cos()
                     );
-                    camera_front = front.normalize();
+                    camera.front = front.normalize();
                 }
 
                 glfw::WindowEvent::Key(key, _, action, _) => match key {
@@ -152,19 +152,17 @@ fn main() {
         }
 
         if forward {
-            camera_pos += camera_speed * camera_front;
+            camera.pos += camera_speed * camera.front;
         } else if backward {
-            camera_pos -= camera_speed * camera_front;
+            camera.pos -= camera_speed * camera.front;
         }
         if right {
-            camera_pos += camera_front.cross(&camera_up).normalize() * camera_speed;
+            camera.pos += camera.front.cross(&camera.up).normalize() * camera_speed;
         } else if left {
-            camera_pos -= camera_front.cross(&camera_up).normalize() * camera_speed;
+            camera.pos -= camera.front.cross(&camera.up).normalize() * camera_speed;
         }
 
-        let p = Point3::from(camera_pos);
-        let v = Point3::from(camera_pos + camera_front);
-        let view = Isometry3::look_at_rh(&p, &v, &camera_up).to_homogeneous();
+        let view = camera.view();
 
         for cube in &cubes {
             let rot = Rotation3::from_euler_angles(0.0, iter, 0.0);
@@ -177,7 +175,7 @@ fn main() {
             cube.draw();
         }
 
-        iter = iter + 0.05;
+        iter += 0.05;
 
         window.swap_buffers();
         unsafe {
