@@ -25,6 +25,7 @@ fn main() {
         glfw::WindowMode::Windowed
     ).expect("failed to create window!");
 
+    window.set_pos(1000, 200);
     window.set_framebuffer_size_polling(true);
     window.set_cursor_mode(CursorMode::Disabled);
     window.set_cursor_pos_polling(true);
@@ -73,7 +74,7 @@ fn main() {
     let mut last_x = 1920.0 / 2.0;
     let mut last_y = 1080.0 / 2.0;
 
-    let mut yaw = 0.0;
+    let mut yaw = 90.0;
     let mut pitch = 0.0;
 
     let sensitivity = 0.5;
@@ -89,7 +90,6 @@ fn main() {
 
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&events) {
-            println!("{:?}", event);
             match event {
                 glfw::WindowEvent::CursorPos(x, y) => {
                     let x_offset = (x - last_x) as f32;
@@ -114,6 +114,7 @@ fn main() {
                     );
                     camera_front = front.normalize();
                 }
+
                 glfw::WindowEvent::Key(key, _, action, _) => match key {
                     Key::Q => window.set_should_close(true),
                     Key::W => {
