@@ -43,14 +43,11 @@ impl Program {
         let fragment_src = fs::read_to_string(fragment_path).unwrap();
         let vert_shader = Shader::from_vert_source(&vertex_src).unwrap();
         let frag_shader = Shader::from_frag_source(&fragment_src).unwrap();
-        let program =
-            Program::from_shaders(
-                &vert_shader,
-                &frag_shader
-            ).unwrap();
 
-        program.set_used();
-        program
+        Program::from_shaders(
+            &vert_shader,
+            &frag_shader
+        ).unwrap()
     }
 
 }

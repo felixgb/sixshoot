@@ -27,10 +27,11 @@ impl Uniform {
             )
         };
 
-        match location {
-            -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
-            id => Ok(Uniform{ id })
-        }
+        // match location {
+        //     -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
+        //     id => Ok(Uniform{ id })
+        // }
+        Ok(Uniform { id: location })
     }
 
     pub fn set_uniform_matrix4fv(&self, value: &nalgebra::Matrix4<f32>) {
@@ -39,6 +40,16 @@ impl Uniform {
                 self.id,
                 1,
                 gl::FALSE,
+                value.as_slice().as_ptr() as *const f32
+            );
+        }
+    }
+
+    pub fn set_uniform_vec3(&self, value: &nalgebra::Vector3<f32>) {
+        unsafe {
+            gl::Uniform3fv(
+                self.id,
+                1,
                 value.as_slice().as_ptr() as *const f32
             );
         }

@@ -10,7 +10,7 @@ impl Camera {
     pub fn new() -> Camera {
         Camera {
             front: Vector3::new(0.0, 0.0, 1.0),
-            pos: Vector3::new(0.0, 0.0, -5.0),
+            pos: Vector3::new(5.0, 0.0, 5.0),
             up: Vector3::y(),
         }
     }

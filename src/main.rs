@@ -61,7 +61,6 @@ fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-
     let (mut window, events) = create_window(glfw);
 
     gl::load_with(
@@ -70,24 +69,37 @@ fn main() {
 
     unsafe {
         gl::Viewport(0, 0, 1920, 1080);
+        gl::Enable(gl::DEPTH_TEST);
     }
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
     let cubes = maps::read_map("assets/first.map");
 
-    // let cubes = vec![
-    //     model::Model::floor_model(),
-    //     model::Model::test_cube_model(Point3::new(-5.0, 1.5, 0.0)),
-    //     model::Model::test_cube_model(Point3::new(0.0, 1.5, 0.0)),
-    //     model::Model::test_cube_model(Point3::new(5.0, 1.5, 0.0)),
-    // ];
+    let program = render::Program::use_program_from_sources("src/shaders/vert.shdr", "src/shaders/frag.shdr");
+    // let light_program = render::Program::use_program_from_sources("src/shaders/vert.shdr", "src/shaders/light_frag.shdr");
 
-    let program = render::Program::use_program_from_sources("src/vert.shdr", "src/frag.shdr");
+    // light_program.set_used();
+    // let light_model_transform = uniform::Uniform::get_uniform_location(light_program.id, "model").unwrap();
+    // let light_transform = uniform::Uniform::get_uniform_location(light_program.id, "transform").unwrap();
+
+    program.set_used();
+    println!("{}", program.id);
+
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
+    println!("here");
+    let model_transform = uniform::Uniform::get_uniform_location(program.id, "model").unwrap();
 
-    unsafe {
-        gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-    }
+    let light_pos = Point3::new(5.0, 5.0, 15.0);
+    let light_cube = model::Model::test_cube_model(light_pos);
+    let light_scale = Matrix4::new_scaling(0.1);
+
+    let light_color = uniform::Uniform::get_uniform_location(program.id, "light_color").unwrap();
+    let object_color = uniform::Uniform::get_uniform_location(program.id, "object_color").unwrap();
+    let light_pos_transform = uniform::Uniform::get_uniform_location(program.id, "light_pos").unwrap();
+
+    // unsafe {
+    //     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+    // }
 
     let projection = Perspective3::new(16.0 / 9.0, std::f32::consts::PI / 3.0, 0.1, 1000.0);
 
@@ -99,6 +111,10 @@ fn main() {
         let delta_millis = timer();
 
         glfw.poll_events();
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+
         for (_, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::Key(Key::Q, _, _, _) => {
@@ -117,19 +133,36 @@ fn main() {
 
         let view = controls.camera.view();
 
+        // light_program.set_used();
+        // {
+        //     let model = light_cube.isometry.to_homogeneous() * light_scale;
+        //     model_transform.set_uniform_matrix4fv(&model);
+        //     light_model_transform.set_uniform_matrix4fv(&model);
+
+        //     let model_view_projection = projection.into_inner() * view * model;
+
+        //     light_transform.set_uniform_matrix4fv(&model_view_projection);
+        //     light_cube.draw();
+        // }
+
+        program.set_used();
+
+        light_color.set_uniform_vec3(&Vector3::new(1.0, 1.0, 1.0));
+        object_color.set_uniform_vec3(&Vector3::new(1.0, 0.5, 0.31));
+        light_pos_transform.set_uniform_vec3(&Vector3::new(light_pos.x, light_pos.y, light_pos.z));
+
         for cube in &cubes {
             let model = cube.isometry.to_homogeneous();
+            model_transform.set_uniform_matrix4fv(&model);
+            // light_model_transform.set_uniform_matrix4fv(&model);
+
             let model_view_projection = projection.into_inner() * view * model;
 
             transform.set_uniform_matrix4fv(&model_view_projection);
-
             cube.draw();
         }
 
         window.swap_buffers();
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
     }
 
 }
