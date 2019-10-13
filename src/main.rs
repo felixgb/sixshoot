@@ -9,6 +9,7 @@ mod model;
 mod camera;
 mod controls;
 mod collide;
+mod maps;
 
 use glfw::*;
 use nalgebra::*;
@@ -72,12 +73,14 @@ fn main() {
     }
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
-    let cubes = vec![
-        model::Model::floor_model(),
-        model::Model::test_cube_model(Point3::new(-5.0, 1.5, 0.0)),
-        model::Model::test_cube_model(Point3::new(0.0, 1.5, 0.0)),
-        model::Model::test_cube_model(Point3::new(5.0, 1.5, 0.0)),
-    ];
+    let cubes = maps::read_map("assets/first.map");
+
+    // let cubes = vec![
+    //     model::Model::floor_model(),
+    //     model::Model::test_cube_model(Point3::new(-5.0, 1.5, 0.0)),
+    //     model::Model::test_cube_model(Point3::new(0.0, 1.5, 0.0)),
+    //     model::Model::test_cube_model(Point3::new(5.0, 1.5, 0.0)),
+    // ];
 
     let program = render::Program::use_program_from_sources("src/vert.shdr", "src/frag.shdr");
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();

@@ -63,15 +63,17 @@ impl Model {
         vertex::draw_arrays(self.num_verts);
     }
 
-    pub fn floor_model() -> Model {
+    pub fn floor_model(x_dim: usize, z_dim: usize) -> Model {
+        let x = x_dim as f32;
+        let z = z_dim as f32;
         let floor_verts: Vec<f32> = vec![
-            -10.0, 0.0, -10.0,
-            10.0, 0.0, -10.0,
-            -10.0, 0.0, 10.0,
+            0.0, 0.0, 0.0,
+            x, 0.0, 0.0,
+            0.0, 0.0, z,
 
-            10.0, 0.0, 10.0,
-            10.0, 0.0, -10.0,
-            -10.0, 0.0, 10.0,
+            x, 0.0, z,
+            x, 0.0, 0.0,
+            0.0, 0.0, z,
         ];
         Model::new(&floor_verts, Point3::new(0.0, 0.0, 0.0))
     }
