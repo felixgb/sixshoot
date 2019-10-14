@@ -27,11 +27,10 @@ impl Uniform {
             )
         };
 
-        // match location {
-        //     -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
-        //     id => Ok(Uniform{ id })
-        // }
-        Ok(Uniform { id: location })
+        match location {
+            -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
+            id => Ok(Uniform{ id })
+        }
     }
 
     pub fn set_uniform_matrix4fv(&self, value: &nalgebra::Matrix4<f32>) {

@@ -83,10 +83,8 @@ fn main() {
     // let light_transform = uniform::Uniform::get_uniform_location(light_program.id, "transform").unwrap();
 
     program.set_used();
-    println!("{}", program.id);
 
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
-    println!("here");
     let model_transform = uniform::Uniform::get_uniform_location(program.id, "model").unwrap();
 
     let light_pos = Point3::new(5.0, 5.0, 15.0);
