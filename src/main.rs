@@ -11,16 +11,29 @@ mod model;
 mod render;
 mod uniform;
 mod vertex;
+mod programs;
 
 use glfw::*;
+use programs::{ModelProgram, LightProgram};
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
-use uniform::get_uniform_location;
+use render::load_shader_file;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
 
 type Events = Receiver<(f64, WindowEvent)>;
+
+fn load_programs() -> (ModelProgram, LightProgram) {
+    let vert_shader = load_shader_file("src/shaders/vert.shdr", gl::VERTEX_SHADER);
+    let frag_shader = load_shader_file("src/shaders/frag.shdr", gl::FRAGMENT_SHADER);
+    let light_frag_shader = load_shader_file("src/shaders/light_frag.shdr", gl::FRAGMENT_SHADER);
+
+    let model_program = ModelProgram::from_shaders(&vert_shader, &frag_shader);
+    let light_program = LightProgram::from_shaders(&vert_shader, &light_frag_shader);
+
+    (model_program, light_program)
+}
 
 fn create_window(glfw: Glfw) -> (Window, Events) {
     let (mut window, events) = glfw.create_window(
@@ -77,24 +90,11 @@ fn main() {
 
     let cubes = maps::read_map("assets/first.map");
 
-    let (program, light_program) = render::load_shader_programs();
-
-    program.set_used();
-
-    let model_loc = get_uniform_location(program.id, "model").unwrap();
-    let view_loc = get_uniform_location(program.id, "view").unwrap();
-    let projection_loc = get_uniform_location(program.id, "projection").unwrap();
-    let light_model_loc = get_uniform_location(light_program.id, "model").unwrap();
-    let light_view_loc = get_uniform_location(light_program.id, "view").unwrap();
-    let light_projection_loc = get_uniform_location(light_program.id, "projection").unwrap();
+    let (program, light_program) = load_programs();
 
     let light_pos = glm::vec3(5.0, 1.5, 15.0);
     let light_cube = model::Model::test_cube_model(light_pos);
     let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
-
-    let light_color = get_uniform_location(program.id, "light_color").unwrap();
-    let object_color = get_uniform_location(program.id, "object_color").unwrap();
-    let light_pos_transform = get_uniform_location(program.id, "light_pos").unwrap();
 
     let projection = glm::perspective(
         WIDTH as f32 / HEIGHT as f32,
@@ -132,29 +132,23 @@ fn main() {
         controls.update(delta_millis, &cubes);
 
         let view = controls.camera.view();
-        light_program.set_used();
+        light_program.program.set_used();
+        light_program.mvp.set_vp(&view, &projection);
         {
             let model = light_cube.translation * light_scale;
-
-            light_model_loc.set_uniform_matrix4fv(&model);
-            light_view_loc.set_uniform_matrix4fv(&view);
-            light_projection_loc.set_uniform_matrix4fv(&projection);
+            light_program.mvp.set_m(&model);
 
             light_cube.draw();
         }
 
-        program.set_used();
+        program.program.set_used();
+        program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
 
-        light_color.set_uniform_vec3(&glm::vec3(1.0, 1.0, 1.0));
-        object_color.set_uniform_vec3(&glm::vec3(1.0, 0.5, 0.31));
-        light_pos_transform.set_uniform_vec3(&light_pos);
-
+        program.mvp.set_vp(&view, &projection);
         for cube in &cubes {
             let model = cube.translation;
-
-            model_loc.set_uniform_matrix4fv(&model);
-            view_loc.set_uniform_matrix4fv(&view);
-            projection_loc.set_uniform_matrix4fv(&projection);
+            program.mvp.set_m(&model);
+            program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
 
             cube.draw();
         }

@@ -1,20 +1,9 @@
 use gl;
+use std::ffi::{CString, CStr};
 use std::fs;
 use std;
-use std::ffi::{CString, CStr};
 
-pub fn load_shader_programs() -> (Program, Program) {
-    let vert_shader = load_shader_file("src/shaders/vert.shdr", gl::VERTEX_SHADER);
-    let frag_shader = load_shader_file("src/shaders/frag.shdr", gl::FRAGMENT_SHADER);
-    let light_frag_shader = load_shader_file("src/shaders/light_frag.shdr", gl::FRAGMENT_SHADER);
-
-    let model_program = Program::from_shaders(&vert_shader, &frag_shader).unwrap();
-    let light_program = Program::from_shaders(&vert_shader, &light_frag_shader).unwrap();
-
-    (model_program, light_program)
-}
-
-fn load_shader_file(
+pub fn load_shader_file(
     path: &str,
     shader_type: gl::types::GLuint
 ) -> Shader {
