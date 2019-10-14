@@ -1,7 +1,7 @@
 use glm::{Mat4x4, Vec3};
 use super::collide::AABB;
 use super::glm_utils;
-use super::render::buffer;
+use super::buffer;
 use super::vertex;
 
 pub struct Model {

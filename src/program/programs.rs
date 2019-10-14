@@ -1,5 +1,5 @@
 use glm::{Mat4x4, Vec3};
-use super::render::*;
+use super::shader_program::*;
 use super::uniform::{get_uniform_location, Uniform};
 
 pub struct MVPUniforms {

@@ -8,16 +8,14 @@ mod controls;
 mod glm_utils;
 mod maps;
 mod model;
-mod render;
-mod uniform;
+mod buffer;
 mod vertex;
-mod programs;
+mod program;
 
 use glfw::*;
-use programs::{ModelProgram, LightProgram};
+use program::{ModelProgram, LightProgram, load_shader_file};
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
-use render::load_shader_file;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
