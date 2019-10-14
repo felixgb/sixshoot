@@ -3,6 +3,26 @@ use std::fs;
 use std;
 use std::ffi::{CString, CStr};
 
+pub fn load_shader_programs() -> (Program, Program) {
+    let vert_shader = load_shader_file("src/shaders/vert.shdr", gl::VERTEX_SHADER);
+    let frag_shader = load_shader_file("src/shaders/frag.shdr", gl::FRAGMENT_SHADER);
+    let light_frag_shader = load_shader_file("src/shaders/light_frag.shdr", gl::FRAGMENT_SHADER);
+
+    let model_program = Program::from_shaders(&vert_shader, &frag_shader).unwrap();
+    let light_program = Program::from_shaders(&vert_shader, &light_frag_shader).unwrap();
+
+    (model_program, light_program)
+}
+
+fn load_shader_file(
+    path: &str,
+    shader_type: gl::types::GLuint
+) -> Shader {
+    let source = fs::read_to_string(path).unwrap();
+    let cstr_src = &CString::new(source).unwrap();
+    shader_from_source(cstr_src, shader_type).unwrap()
+}
+
 pub struct Program {
     pub id: gl::types::GLuint,
 }
@@ -35,21 +55,6 @@ impl Program {
         }
     }
 
-    pub fn use_program_from_sources(
-        vertex_path: &str,
-        fragment_path: &str
-    ) -> Program {
-        let vertex_src = fs::read_to_string(vertex_path).unwrap();
-        let fragment_src = fs::read_to_string(fragment_path).unwrap();
-        let vert_shader = Shader::from_vert_source(&vertex_src).unwrap();
-        let frag_shader = Shader::from_frag_source(&fragment_src).unwrap();
-
-        Program::from_shaders(
-            &vert_shader,
-            &frag_shader
-        ).unwrap()
-    }
-
 }
 
 impl Drop for Program {
@@ -62,25 +67,6 @@ impl Drop for Program {
 
 pub struct Shader {
     pub id: gl::types::GLuint,
-}
-
-impl Shader {
-    pub fn from_source(
-        source: &str,
-        shader_type: gl::types::GLenum
-    ) -> Result<Shader, String> {
-        let cstr_src = &CString::new(source).unwrap();
-        shader_from_source(cstr_src, shader_type)
-    }
-
-    pub fn from_vert_source(source: &str) -> Result<Shader, String> {
-        Shader::from_source(source, gl::VERTEX_SHADER)
-    }
-
-    pub fn from_frag_source(source: &str) -> Result<Shader, String> {
-        Shader::from_source(source, gl::FRAGMENT_SHADER)
-    }
-
 }
 
 impl Drop for Shader {

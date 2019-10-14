@@ -2,19 +2,20 @@ extern crate gl;
 extern crate glfw;
 extern crate nalgebra_glm as glm;
 
-mod render;
-mod vertex;
-mod uniform;
-mod model;
 mod camera;
-mod controls;
 mod collide;
-mod maps;
+mod controls;
 mod glm_utils;
+mod maps;
+mod model;
+mod render;
+mod uniform;
+mod vertex;
 
 use glfw::*;
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
+use uniform::get_uniform_location;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
@@ -39,7 +40,7 @@ fn create_window(glfw: Glfw) -> (Window, Events) {
     (window, events)
 }
 
-fn make_timer() -> impl FnMut() -> f32 {
+fn start_timer() -> impl FnMut() -> f32 {
     let mut delta_millis = 0.0;
     let mut last_frame = 0.0;
 
@@ -76,29 +77,24 @@ fn main() {
 
     let cubes = maps::read_map("assets/first.map");
 
-    let program = render::Program::use_program_from_sources("src/shaders/vert.shdr", "src/shaders/frag.shdr");
-    // let light_program = render::Program::use_program_from_sources("src/shaders/vert.shdr", "src/shaders/light_frag.shdr");
-
-    // light_program.set_used();
-    // let light_model_transform = uniform::Uniform::get_uniform_location(light_program.id, "model").unwrap();
-    // let light_transform = uniform::Uniform::get_uniform_location(light_program.id, "transform").unwrap();
+    let (program, light_program) = render::load_shader_programs();
 
     program.set_used();
 
-    let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
-    let model_transform = uniform::Uniform::get_uniform_location(program.id, "model").unwrap();
+    let model_loc = get_uniform_location(program.id, "model").unwrap();
+    let view_loc = get_uniform_location(program.id, "view").unwrap();
+    let projection_loc = get_uniform_location(program.id, "projection").unwrap();
+    let light_model_loc = get_uniform_location(light_program.id, "model").unwrap();
+    let light_view_loc = get_uniform_location(light_program.id, "view").unwrap();
+    let light_projection_loc = get_uniform_location(light_program.id, "projection").unwrap();
 
-    let light_pos = glm::vec3(5.0, 5.0, 15.0);
-    let _light_cube = model::Model::test_cube_model(light_pos);
-    let _light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
+    let light_pos = glm::vec3(5.0, 1.5, 15.0);
+    let light_cube = model::Model::test_cube_model(light_pos);
+    let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
 
-    let light_color = uniform::Uniform::get_uniform_location(program.id, "light_color").unwrap();
-    let object_color = uniform::Uniform::get_uniform_location(program.id, "object_color").unwrap();
-    let light_pos_transform = uniform::Uniform::get_uniform_location(program.id, "light_pos").unwrap();
-
-    // unsafe {
-    //     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-    // }
+    let light_color = get_uniform_location(program.id, "light_color").unwrap();
+    let object_color = get_uniform_location(program.id, "object_color").unwrap();
+    let light_pos_transform = get_uniform_location(program.id, "light_pos").unwrap();
 
     let projection = glm::perspective(
         WIDTH as f32 / HEIGHT as f32,
@@ -109,15 +105,15 @@ fn main() {
 
     let mut camera = camera::Camera::new();
     let mut controls = controls::Controls::new(&mut camera);
-    let mut timer = make_timer();
+    let mut mark_time = start_timer();
 
     while !window.should_close() {
-        let delta_millis = timer();
-
-        glfw.poll_events();
+        let delta_millis = mark_time();
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
+
+        glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
             match event {
@@ -136,18 +132,16 @@ fn main() {
         controls.update(delta_millis, &cubes);
 
         let view = controls.camera.view();
+        light_program.set_used();
+        {
+            let model = light_cube.translation * light_scale;
 
-        // light_program.set_used();
-        // {
-        //     let model = light_cube.isometry.to_homogeneous() * light_scale;
-        //     model_transform.set_uniform_matrix4fv(&model);
-        //     light_model_transform.set_uniform_matrix4fv(&model);
+            light_model_loc.set_uniform_matrix4fv(&model);
+            light_view_loc.set_uniform_matrix4fv(&view);
+            light_projection_loc.set_uniform_matrix4fv(&projection);
 
-        //     let model_view_projection = projection.into_inner() * view * model;
-
-        //     light_transform.set_uniform_matrix4fv(&model_view_projection);
-        //     light_cube.draw();
-        // }
+            light_cube.draw();
+        }
 
         program.set_used();
 
@@ -157,12 +151,11 @@ fn main() {
 
         for cube in &cubes {
             let model = cube.translation;
-            model_transform.set_uniform_matrix4fv(&model);
-            // light_model_transform.set_uniform_matrix4fv(&model);
 
-            let model_view_projection = projection * view * model;
+            model_loc.set_uniform_matrix4fv(&model);
+            view_loc.set_uniform_matrix4fv(&view);
+            projection_loc.set_uniform_matrix4fv(&projection);
 
-            transform.set_uniform_matrix4fv(&model_view_projection);
             cube.draw();
         }
 

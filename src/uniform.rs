@@ -13,26 +13,25 @@ pub struct Uniform {
     id: gl::types::GLint,
 }
 
-impl Uniform {
+pub fn get_uniform_location(
+    program_id: u32,
+    uniform_name: &str
+) -> Result<Uniform> {
+    let transform_c_str = &CString::new(uniform_name).unwrap();
+    let location = unsafe {
+        gl::GetUniformLocation(
+            program_id,
+            transform_c_str.as_ptr()
+        )
+    };
 
-    pub fn get_uniform_location(
-        program_id: u32,
-        uniform_name: &str
-    ) -> Result<Uniform> {
-        let transform_c_str = &CString::new(uniform_name).unwrap();
-        let location = unsafe {
-            gl::GetUniformLocation(
-                program_id,
-                transform_c_str.as_ptr()
-            )
-        };
-
-        match location {
-            -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
-            id => Ok(Uniform{ id })
-        }
+    match location {
+        -1 => Err(UniformError::UniformNotFound(uniform_name.to_string())),
+        id => Ok(Uniform { id } )
     }
+}
 
+impl Uniform {
     pub fn set_uniform_matrix4fv(&self, value: &Mat4x4) {
         unsafe {
             gl::UniformMatrix4fv(
