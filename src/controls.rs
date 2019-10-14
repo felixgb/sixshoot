@@ -1,5 +1,4 @@
 use super::camera;
-use nalgebra::{Vector3, Point3};
 use glfw::{Key, Action};
 use std::collections::HashSet;
 use super::model::Model;
@@ -46,7 +45,7 @@ impl<'a> Controls<'a> {
             self.pitch = -89.0;
         }
 
-        let front = Vector3::new(
+        let front = glm::vec3(
             self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
             self.pitch.to_radians().sin(),
             self.yaw.to_radians().sin() * self.pitch.to_radians().cos()
@@ -75,8 +74,7 @@ impl<'a> Controls<'a> {
         new_pos.y = 2.0;
         let mut is_colliding = false;
         for m in models {
-            let p = Point3::from(new_pos);
-            is_colliding = is_colliding || m.collides_with(p);
+            is_colliding = is_colliding || m.collides_with(new_pos);
         }
         if !is_colliding {
             self.camera.pos = new_pos;

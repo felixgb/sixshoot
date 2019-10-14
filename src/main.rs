@@ -1,6 +1,6 @@
 extern crate gl;
 extern crate glfw;
-extern crate nalgebra;
+extern crate nalgebra_glm as glm;
 
 mod render;
 mod vertex;
@@ -10,9 +10,9 @@ mod camera;
 mod controls;
 mod collide;
 mod maps;
+mod glm_utils;
 
 use glfw::*;
-use nalgebra::*;
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
 
@@ -68,9 +68,10 @@ fn main() {
     );
 
     unsafe {
-        gl::Viewport(0, 0, 1920, 1080);
+        gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
         gl::Enable(gl::DEPTH_TEST);
     }
+
     // let vertices = obj::read_lines().unwrap().compute_faces();
 
     let cubes = maps::read_map("assets/first.map");
@@ -87,9 +88,9 @@ fn main() {
     let transform = uniform::Uniform::get_uniform_location(program.id, "transform").unwrap();
     let model_transform = uniform::Uniform::get_uniform_location(program.id, "model").unwrap();
 
-    let light_pos = Point3::new(5.0, 5.0, 15.0);
-    let light_cube = model::Model::test_cube_model(light_pos);
-    let light_scale = Matrix4::new_scaling(0.1);
+    let light_pos = glm::vec3(5.0, 5.0, 15.0);
+    let _light_cube = model::Model::test_cube_model(light_pos);
+    let _light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
 
     let light_color = uniform::Uniform::get_uniform_location(program.id, "light_color").unwrap();
     let object_color = uniform::Uniform::get_uniform_location(program.id, "object_color").unwrap();
@@ -99,7 +100,12 @@ fn main() {
     //     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     // }
 
-    let projection = Perspective3::new(16.0 / 9.0, std::f32::consts::PI / 3.0, 0.1, 1000.0);
+    let projection = glm::perspective(
+        WIDTH as f32 / HEIGHT as f32,
+        std::f32::consts::PI / 3.0,
+        0.1,
+        1000.0
+    );
 
     let mut camera = camera::Camera::new();
     let mut controls = controls::Controls::new(&mut camera);
@@ -145,16 +151,16 @@ fn main() {
 
         program.set_used();
 
-        light_color.set_uniform_vec3(&Vector3::new(1.0, 1.0, 1.0));
-        object_color.set_uniform_vec3(&Vector3::new(1.0, 0.5, 0.31));
-        light_pos_transform.set_uniform_vec3(&Vector3::new(light_pos.x, light_pos.y, light_pos.z));
+        light_color.set_uniform_vec3(&glm::vec3(1.0, 1.0, 1.0));
+        object_color.set_uniform_vec3(&glm::vec3(1.0, 0.5, 0.31));
+        light_pos_transform.set_uniform_vec3(&light_pos);
 
         for cube in &cubes {
-            let model = cube.isometry.to_homogeneous();
+            let model = cube.translation;
             model_transform.set_uniform_matrix4fv(&model);
             // light_model_transform.set_uniform_matrix4fv(&model);
 
-            let model_view_projection = projection.into_inner() * view * model;
+            let model_view_projection = projection * view * model;
 
             transform.set_uniform_matrix4fv(&model_view_projection);
             cube.draw();

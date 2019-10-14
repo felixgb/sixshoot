@@ -1,24 +1,22 @@
-use nalgebra::*;
+use glm::{Mat4x4, Vec3};
 
 pub struct Camera {
-    pub front: Vector3<f32>,
-    pub pos: Vector3<f32>,
-    pub up: Vector3<f32>,
+    pub front: Vec3,
+    pub pos: Vec3,
+    pub up: Vec3,
 }
 
 impl Camera {
     pub fn new() -> Camera {
         Camera {
-            front: Vector3::new(0.0, 0.0, 1.0),
-            pos: Vector3::new(5.0, 0.0, 5.0),
-            up: Vector3::y(),
+            front: glm::vec3(0.0, 0.0, 1.0),
+            pos: glm::vec3(5.0, 0.0, 5.0),
+            up: glm::vec3(0.0, 1.0, 0.0),
         }
     }
 
-    pub fn view(&self) -> Matrix4<f32> {
-        let p = Point3::from(self.pos);
-        let v = Point3::from(self.pos + self.front);
-        Isometry3::look_at_rh(&p, &v, &self.up).to_homogeneous()
+    pub fn view(&self) -> Mat4x4 {
+        glm::look_at(&self.pos, &(self.pos + self.front), &self.up)
     }
 }
 

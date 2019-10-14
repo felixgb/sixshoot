@@ -1,5 +1,4 @@
 use std::fs;
-use nalgebra::Point3;
 use super::model::Model;
 
 pub fn read_map(path: &str) -> Vec<Model> {
@@ -9,7 +8,7 @@ pub fn read_map(path: &str) -> Vec<Model> {
     for (x, line) in src.split("\n").enumerate() {
         for (z, char) in line.chars().enumerate() {
             if char == 'x' {
-                let pos = Point3::new(
+                let pos = glm::vec3(
                     (x * 3) as f32, 1.5, (z * 3) as f32
                     );
                 let model = Model::test_cube_model(pos);

@@ -1,5 +1,5 @@
 use gl;
-
+use glm::{Mat4x4, Vec3};
 use std::ffi::CString;
 
 #[derive(Debug, Clone)]
@@ -33,7 +33,7 @@ impl Uniform {
         }
     }
 
-    pub fn set_uniform_matrix4fv(&self, value: &nalgebra::Matrix4<f32>) {
+    pub fn set_uniform_matrix4fv(&self, value: &Mat4x4) {
         unsafe {
             gl::UniformMatrix4fv(
                 self.id,
@@ -44,7 +44,7 @@ impl Uniform {
         }
     }
 
-    pub fn set_uniform_vec3(&self, value: &nalgebra::Vector3<f32>) {
+    pub fn set_uniform_vec3(&self, value: &Vec3) {
         unsafe {
             gl::Uniform3fv(
                 self.id,

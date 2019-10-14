@@ -1,15 +1,15 @@
-use nalgebra::*;
+use glm::Vec3;
 
 #[derive(Debug)]
 pub struct AABB {
-    pub left_top_front: Point3<f32>,
-    pub right_bottom_back: Point3<f32>,
+    pub left_top_front: Vec3,
+    pub right_bottom_back: Vec3,
 }
 
 impl AABB {
     pub fn new(verts: &[f32]) -> AABB {
-        let mut left_top_front = Point3::new(0.0, 0.0, 0.0);
-        let mut right_bottom_back = Point3::new(0.0, 0.0, 0.0);
+        let mut left_top_front: Vec3 = glm::vec3(0.0, 0.0, 0.0);
+        let mut right_bottom_back: Vec3 = glm::vec3(0.0, 0.0, 0.0);
 
         for face in verts.chunks(3) {
             left_top_front.x = left_top_front.x.max(face[0]);
@@ -26,7 +26,7 @@ impl AABB {
         }
     }
 
-    pub fn is_in_aabb(&self, pos: Point3<f32>) -> bool {
+    pub fn is_in_aabb(&self, pos: Vec3) -> bool {
         self.right_bottom_back.x <= pos.x
             && self.left_top_front.x >= pos.x
             && self.right_bottom_back.y <= pos.y
@@ -37,7 +37,6 @@ impl AABB {
 }
 
 mod tests {
-    use nalgebra::{Vector3, Point3};
 
     #[test]
     fn test_is_in_aabb() {
@@ -86,19 +85,19 @@ mod tests {
         ];
         let aabb = super::AABB::new(&vs);
 
-        let in_point = Point3::new(0.0, 0.0, 0.0);
+        let in_point = glm::vec3(0.0, 0.0, 0.0);
         let is_in = aabb.is_in_aabb(in_point);
         assert_eq!(is_in, true);
 
-        let in_point = Point3::new(1.5, 0.0, 0.0);
+        let in_point = glm::vec3(1.5, 0.0, 0.0);
         let is_in = aabb.is_in_aabb(in_point);
         assert_eq!(is_in, true);
 
-        let out_point = Point3::new(10.0, 0.0, 0.0);
+        let out_point = glm::vec3(10.0, 0.0, 0.0);
         let is_in = aabb.is_in_aabb(out_point);
         assert_eq!(is_in, false);
 
-        let out_point = Point3::new(10.0, 10.0, 0.0);
+        let out_point = glm::vec3(10.0, 10.0, 0.0);
         let is_in = aabb.is_in_aabb(out_point);
         assert_eq!(is_in, false);
     }
@@ -151,11 +150,11 @@ mod tests {
         let aabb = super::AABB::new(&vs);
         assert_eq!(
             aabb.left_top_front,
-            Vector3::new(1.5, 1.5, 1.5)
+            glm::vec3(1.5, 1.5, 1.5)
         );
         assert_eq!(
             aabb.right_bottom_back,
-            Vector3::new(-1.5, -1.5, -1.5)
+            glm::vec3(-1.5, -1.5, -1.5)
         );
     }
 

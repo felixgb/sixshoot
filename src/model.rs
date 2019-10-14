@@ -1,11 +1,11 @@
-use nalgebra::*;
-
-use super::vertex;
-use super::render::buffer;
+use glm::{Mat4x4, Vec3};
 use super::collide::AABB;
+use super::glm_utils;
+use super::render::buffer;
+use super::vertex;
 
 pub struct Model {
-    pub isometry: Isometry3<f32>,
+    pub translation: Mat4x4,
     aabb: AABB,
     num_verts: usize,
     _position_vbo: buffer::ArrayBuffer,
@@ -13,7 +13,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(faces: &[f32], pos: Point3<f32>) -> Model {
+    pub fn new(faces: &[f32], pos: Vec3) -> Model {
         let vbo = buffer::ArrayBuffer::new();
 
         vbo.bind();
@@ -34,10 +34,7 @@ impl Model {
         let aabb = AABB::new(&faces);
 
         Model { 
-            isometry: Isometry3::from_parts(
-                          Translation3::new(pos.x, pos.y, pos.z),
-                          UnitQuaternion::identity()
-                      ),
+            translation: glm::translation(&pos),
             aabb,
             num_verts: (faces.len() / 3),
             _position_vbo: vbo,
@@ -45,11 +42,13 @@ impl Model {
         }
     }
 
-    pub fn collides_with(&self, pos: Point3<f32>) -> bool {
-        let trans = self.isometry;
-        let p1 = trans * self.aabb.left_top_front;
-        let p2 = trans * self.aabb.right_bottom_back;
-        let aabb = AABB { left_top_front: p1, right_bottom_back: p2 };
+    pub fn collides_with(&self, pos: Vec3) -> bool {
+        let h1 = glm_utils::translate_pos(&self.translation, &self.aabb.left_top_front);
+        let h2 = glm_utils::translate_pos(&self.translation, &self.aabb.right_bottom_back);
+        let aabb = AABB {
+            left_top_front: h1,
+            right_bottom_back: h2,
+        };
         aabb.is_in_aabb(pos)
     }
 
@@ -73,10 +72,10 @@ impl Model {
             x, 0.0, 0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, z, 0.0, 1.0, 0.0,
         ];
-        Model::new(&floor_verts, Point3::new(0.0, h, 0.0))
+        Model::new(&floor_verts, glm::vec3(0.0, h, 0.0))
     }
 
-    pub fn test_cube_model(pos: Point3<f32>) -> Model {
+    pub fn test_cube_model(pos: Vec3) -> Model {
         let cube_verts: Vec<f32> = vec![
             -1.5, -1.5, -1.5,  0.0,  0.0, -1.0,
             1.5, -1.5, -1.5,  0.0,  0.0, -1.0,
