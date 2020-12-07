@@ -58,7 +58,7 @@ impl<'a> Controls<'a> {
         let backward = self.pressed.contains(&Key::S);
         let left = self.pressed.contains(&Key::A);
         let right = self.pressed.contains(&Key::D);
-        let camera_speed = 0.01 * delta_millis;
+        let camera_speed = 0.03 * delta_millis;
 
         let mut new_pos = self.camera.pos.clone();
         if forward {
@@ -72,12 +72,16 @@ impl<'a> Controls<'a> {
             new_pos -= self.camera.front.cross(&self.camera.up).normalize() * camera_speed;
         }
         new_pos.y = 2.0;
-        let mut is_colliding = false;
-        for m in models {
-            is_colliding = is_colliding || m.collides_with(new_pos);
-        }
-        if !is_colliding {
-            self.camera.pos = new_pos;
+
+        let collides = models.into_iter()
+            .find_map(|m| m.collides_with(new_pos));
+
+        self.camera.pos = match collides {
+            Some(m) => {
+                new_pos.x = m;
+                new_pos
+            },
+            None => new_pos,
         }
     }
 
