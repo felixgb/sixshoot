@@ -6,10 +6,6 @@ pub struct AABB {
     pub right_bottom_back: Vec3,
 }
 
-struct Thing {
-    a: f32
-}
-
 impl AABB {
     pub fn new(verts: &[f32]) -> AABB {
         let mut left_top_front: Vec3 = glm::vec3(0.0, 0.0, 0.0);
