@@ -33,6 +33,7 @@ impl AABB {
             && self.left_top_front.y >= pos.y
             && self.right_bottom_back.z <= pos.z
             && self.left_top_front.z >= pos.z;
+
         if x { Some(self.left_top_front.x) } else { None }
     }
 

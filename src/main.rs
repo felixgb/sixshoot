@@ -2,15 +2,16 @@ extern crate gl;
 extern crate glfw;
 extern crate nalgebra_glm as glm;
 
+mod buffer;
 mod camera;
 mod collide;
 mod controls;
 mod glm_utils;
 mod maps;
 mod model;
-mod buffer;
-mod vertex;
+mod obj;
 mod program;
+mod vertex;
 
 use glfw::*;
 use program::{ModelProgram, LightProgram, load_shader_file};
@@ -84,9 +85,11 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    // let vertices = obj::read_lines().unwrap().compute_faces();
+    let thingy = obj::read_lines().unwrap().compute_faces();
+    let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
 
-    let cubes = maps::read_map("assets/first.map");
+    let mut all_models = maps::read_map("assets/first.map");
+    all_models.push(thingy_model);
 
     let (program, light_program) = load_programs();
 
@@ -127,7 +130,7 @@ fn main() {
                 _ => { }
             }
         }
-        controls.update(delta_millis, &cubes);
+        controls.update(delta_millis, &all_models);
 
         let view = controls.camera.view();
         light_program.program.set_used();
@@ -143,7 +146,7 @@ fn main() {
         program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
 
         program.mvp.set_vp(&view, &projection);
-        for cube in &cubes {
+        for cube in &all_models {
             let model = cube.translation;
             program.mvp.set_m(&model);
             program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
