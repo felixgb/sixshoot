@@ -42,7 +42,7 @@ impl Model {
         }
     }
 
-    pub fn collides_with(&self, pos: Vec3) -> Option<f32> {
+    pub fn collides_with(&self, pos: Vec3) -> bool {
         let h1 = glm_utils::translate_pos(&self.translation, &self.aabb.left_top_front);
         let h2 = glm_utils::translate_pos(&self.translation, &self.aabb.right_bottom_back);
         let aabb = AABB {

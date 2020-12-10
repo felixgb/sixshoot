@@ -26,17 +26,14 @@ impl AABB {
         }
     }
 
-    pub fn is_in_aabb(&self, pos: Vec3) -> Option<f32> {
-        let x = self.right_bottom_back.x <= pos.x
+    pub fn is_in_aabb(&self, pos: Vec3) -> bool {
+        self.right_bottom_back.x <= pos.x
             && self.left_top_front.x >= pos.x
+            && self.right_bottom_back.z <= pos.z
+            && self.left_top_front.z >= pos.z
             && self.right_bottom_back.y <= pos.y
             && self.left_top_front.y >= pos.y
-            && self.right_bottom_back.z <= pos.z
-            && self.left_top_front.z >= pos.z;
-
-        if x { Some(self.left_top_front.x) } else { None }
     }
-
 }
 
 mod tests {

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use super::model::Model;
 
 const SENSITIVITY: f32 = 0.5;
+const SPEED: f32 = 0.01;
 
 pub struct Controls<'a> {
     pub camera: &'a mut camera::Camera,
@@ -58,7 +59,7 @@ impl<'a> Controls<'a> {
         let backward = self.pressed.contains(&Key::S);
         let left = self.pressed.contains(&Key::A);
         let right = self.pressed.contains(&Key::D);
-        let camera_speed = 0.03 * delta_millis;
+        let camera_speed = SPEED * delta_millis;
 
         let mut new_pos = self.camera.pos.clone();
         if forward {
@@ -73,15 +74,10 @@ impl<'a> Controls<'a> {
         }
         new_pos.y = 2.0;
 
-        let collides = models.into_iter()
-            .find_map(|m| m.collides_with(new_pos));
 
-        self.camera.pos = match collides {
-            Some(m) => {
-                new_pos.x = m;
-                new_pos
-            },
-            None => new_pos,
+        let is_colliding = models.into_iter().any(|m| m.collides_with(new_pos));
+        if !is_colliding {
+            self.camera.pos = new_pos;
         }
     }
 
