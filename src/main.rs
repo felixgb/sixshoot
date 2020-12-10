@@ -130,6 +130,7 @@ fn main() {
                 _ => { }
             }
         }
+
         controls.update(delta_millis, &all_models);
 
         let view = controls.camera.view();
@@ -146,6 +147,7 @@ fn main() {
         program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
 
         program.mvp.set_vp(&view, &projection);
+
         for cube in &all_models {
             let model = cube.translation;
             program.mvp.set_m(&model);

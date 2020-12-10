@@ -9,7 +9,7 @@ pub fn read_map(path: &str) -> Vec<Model> {
         for (z, char) in line.chars().enumerate() {
             if char == 'x' {
                 let pos = glm::vec3(
-                    (x * 3) as f32, 1.5, (z * 3) as f32
+                    (x * 4) as f32, 2.0, (z * 4) as f32
                     );
                 let model = Model::test_cube_model(pos);
                 models.push(model);
@@ -18,6 +18,5 @@ pub fn read_map(path: &str) -> Vec<Model> {
     }
 
     models.push(Model::floor_model(100, 100, 0.0));
-    models.push(Model::floor_model(100, 100, 3.0));
     models
 }
