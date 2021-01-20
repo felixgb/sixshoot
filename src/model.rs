@@ -3,6 +3,7 @@ use super::collide::AABB;
 use super::glm_utils;
 use super::buffer;
 use super::vertex;
+use super::texture;
 
 pub struct Model {
     pub translation: Mat4x4,
@@ -10,10 +11,11 @@ pub struct Model {
     num_verts: usize,
     _position_vbo: buffer::ArrayBuffer,
     vao: u32,
+    texture_id: gl::types::GLuint,
 }
 
 impl Model {
-    pub fn new(faces: &[f32], pos: Vec3) -> Model {
+    pub fn new(faces: &[f32], pos: Vec3, texture_id: gl::types::GLuint) -> Model {
         let vbo = buffer::ArrayBuffer::new();
 
         vbo.bind();
@@ -39,6 +41,7 @@ impl Model {
             num_verts: (faces.len() / 3),
             _position_vbo: vbo,
             vao,
+            texture_id
         }
     }
 
@@ -55,27 +58,32 @@ impl Model {
     pub fn draw(&self) {
         unsafe {
             gl::BindVertexArray(self.vao);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture_id);
         }
 
         vertex::draw_arrays(self.num_verts);
     }
 
-    pub fn floor_model(x_dim: usize, z_dim: usize, h: f32) -> Model {
-        let x = x_dim as f32;
-        let z = z_dim as f32;
-        let floor_verts: Vec<f32> = vec![
-            0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-            x, 0.0, 0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, z, 0.0, 1.0, 0.0,
+    // pub fn floor_model(x_dim: usize, z_dim: usize, h: f32) -> Model {
+    //     let x = x_dim as f32;
+    //     let z = z_dim as f32;
+    //     let floor_verts: Vec<f32> = vec![
+    //         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+    //         x, 0.0, 0.0, 0.0, 1.0, 0.0,
+    //         0.0, 0.0, z, 0.0, 1.0, 0.0,
 
-            x, 0.0, z, 0.0, 1.0, 0.0,
-            x, 0.0, 0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, z, 0.0, 1.0, 0.0,
-        ];
-        Model::new(&floor_verts, glm::vec3(0.0, h, 0.0))
+    //         x, 0.0, z, 0.0, 1.0, 0.0,
+    //         x, 0.0, 0.0, 0.0, 1.0, 0.0,
+    //         0.0, 0.0, z, 0.0, 1.0, 0.0,
+    //     ];
+    //     Model::new(&floor_verts, glm::vec3(0.0, h, 0.0))
+    // }
+
+    pub fn cube_texture() -> gl::types::GLuint {
+        texture::prepare_textures()
     }
 
-    pub fn test_cube_model(pos: Vec3) -> Model {
+    pub fn test_cube_model(pos: Vec3, texture_location: gl::types::GLuint) -> Model {
         let cube_verts: Vec<f32> = vec![
             -2.0, -2.0, -2.0,  0.0,  0.0, -1.0, 0.0, 0.0,
             2.0, -2.0, -2.0,  0.0,  0.0, -1.0, 1.0, 0.0,
@@ -119,7 +127,7 @@ impl Model {
             -2.0,  2.0,  2.0,  0.0,  1.0,  0.0, 0.0, 0.0,
             -2.0,  2.0, -2.0,  0.0,  1.0,  0.0, 0.0, 1.0
         ];
-        Model::new(&cube_verts, pos)
+        Model::new(&cube_verts, pos, texture_location)
     }
 }
 

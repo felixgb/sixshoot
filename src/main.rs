@@ -12,12 +12,12 @@ mod model;
 mod obj;
 mod program;
 mod vertex;
+mod texture;
 
 use glfw::*;
 use program::{ModelProgram, LightProgram, load_shader_file};
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
-use image::EncodableLayout;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
@@ -53,6 +53,7 @@ fn create_window(glfw: Glfw) -> (Window, Events) {
     (window, events)
 }
 
+#[allow(unused_assignments)]
 fn start_timer() -> impl FnMut() -> f32 {
     let mut delta_millis = 0.0;
     let mut last_frame = 0.0;
@@ -71,33 +72,6 @@ fn start_timer() -> impl FnMut() -> f32 {
     }
 }
 
-fn prepare_textures() -> gl::types::GLuint {
-    let mut texture_id: gl::types::GLuint = 0;
-    let image = image::open("assets/container.jpg").unwrap().to_rgb8();
-    unsafe {
-        gl::GenTextures(1, &mut texture_id);
-        gl::BindTexture(gl::TEXTURE_2D, texture_id);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::MIRRORED_REPEAT as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::MIRRORED_REPEAT as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as gl::types::GLint);
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as gl::types::GLint,
-            512,
-            512,
-            0,
-            gl::RGB,
-            gl::UNSIGNED_BYTE,
-            image.as_bytes().as_ptr() as *const gl::types::GLvoid
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-        gl::BindTexture(gl::TEXTURE_2D, 0);
-    }
-    texture_id
-}
-
 fn main() {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -113,16 +87,18 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    let thingy = obj::read_lines().unwrap().compute_faces();
-    let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
+    // let thingy = obj::read_lines().unwrap().compute_faces();
+    // let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
 
     let mut all_models = maps::read_map("assets/first.map");
-    all_models.push(thingy_model);
+    // all_models.push(thingy_model);
+
+    let cube_texture = model::Model::cube_texture();
 
     let (program, light_program) = load_programs();
 
     let light_pos = glm::vec3(5.0, 1.5, 15.0);
-    let light_cube = model::Model::test_cube_model(light_pos);
+    let light_cube = model::Model::test_cube_model(light_pos, cube_texture);
     let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
 
     let projection = glm::perspective(
@@ -135,8 +111,6 @@ fn main() {
     let mut camera = camera::Camera::new();
     let mut controls = controls::Controls::new(&mut camera);
     let mut mark_time = start_timer();
-
-    let texture_id = prepare_textures();
 
     while !window.should_close() {
         let delta_millis = mark_time();
@@ -184,7 +158,6 @@ fn main() {
             program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
 
             unsafe {
-                gl::BindTexture(gl::TEXTURE_2D, texture_id);
                 gl::ActiveTexture(gl::TEXTURE0);
             }
             cube.draw();
