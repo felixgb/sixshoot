@@ -90,7 +90,7 @@ fn main() {
     // let thingy = obj::read_lines().unwrap().compute_faces();
     // let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
 
-    let mut all_models = maps::read_map("assets/first.map");
+    let all_models = maps::read_map("assets/first.map");
     // all_models.push(thingy_model);
 
     let cube_texture = model::Model::cube_texture();

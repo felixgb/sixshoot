@@ -1,8 +1,8 @@
 use image::EncodableLayout;
 
-pub fn prepare_textures() -> gl::types::GLuint {
+pub fn prepare_textures(path: &str) -> gl::types::GLuint {
     let mut texture_id: gl::types::GLuint = 0;
-    let image = image::open("assets/container.jpg").unwrap().to_rgb8();
+    let image = image::open(path).unwrap().to_rgb8();
     unsafe {
         gl::GenTextures(1, &mut texture_id);
         gl::BindTexture(gl::TEXTURE_2D, texture_id);

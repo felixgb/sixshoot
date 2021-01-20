@@ -80,7 +80,7 @@ impl Model {
     // }
 
     pub fn cube_texture() -> gl::types::GLuint {
-        texture::prepare_textures()
+        texture::prepare_textures("assets/container.jpg")
     }
 
     pub fn test_cube_model(pos: Vec3, texture_location: gl::types::GLuint) -> Model {
