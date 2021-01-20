@@ -5,8 +5,6 @@ use std::io::{self, prelude::*, BufReader};
 pub struct Mesh {
     vertices: Vec<f32>,
     vertex_normals: Vec<f32>,
-    vertex_indices: Vec<usize>,
-    vertex_normal_indices: Vec<usize>,
     texture_coords: Vec<f32>,
     face_indices: Vec<(usize, usize, usize)>,
 }
@@ -16,8 +14,6 @@ impl Mesh {
         Mesh {
             vertices: Vec::new(),
             vertex_normals: Vec::new(),
-            vertex_indices: Vec::new(),
-            vertex_normal_indices: Vec::new(),
             texture_coords: Vec::new(),
             face_indices: Vec::new(),
         }
@@ -25,7 +21,6 @@ impl Mesh {
 
     pub fn compute_faces(&self) -> Vec<f32> {
         let mut faces: Vec<f32> = Vec::new();
-        assert_eq!(self.vertex_indices.len(), self.vertex_normal_indices.len());
 
         for f in self.face_indices.chunks(3) {
             for (i, tci, vni) in f {
@@ -150,14 +145,6 @@ mod tests {
         assert_eq!(result.vertices[0], 28.07870);
         assert_eq!(result.vertices[1], -157.42495);
         assert_eq!(result.vertices[2], 17.07285);
-    }
-
-    #[test]
-    fn get_correct_num_faces() {
-        let result = super::read_lines();
-        assert_eq!(result.is_ok(), true);
-
-        assert_eq!(result.unwrap().vertex_indices.len(), 113156 * 3); 
     }
 
     #[test]
