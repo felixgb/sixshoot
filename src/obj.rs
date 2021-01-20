@@ -53,8 +53,8 @@ impl Mesh {
 
 }
 
-pub fn read_lines() -> io::Result<Mesh> {
-    let file = File::open("models/on_a_plate.obj")?;
+pub fn read_lines(obj_file_path: &str) -> io::Result<Mesh> {
+    let file = File::open(obj_file_path)?;
     let reader = BufReader::new(file);
 
     let mut mesh = Mesh::empty();
@@ -126,13 +126,13 @@ mod tests {
 
     #[test]
     fn reads_file() {
-        let result = super::read_lines();
+        let result = super::read_lines("assets/floor.obj");
         assert_eq!(result.is_ok(), true);
     }
 
     #[test]
     fn get_correct_num_verts() {
-        let result = super::read_lines();
+        let result = super::read_lines("assets/floor.obj");
         assert_eq!(result.is_ok(), true);
 
         assert_eq!(result.unwrap().vertices.len(), 62081 * 3);
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn get_correct_first_vert() {
-        let result = super::read_lines().unwrap();
+        let result = super::read_lines("assets/floor.obj").unwrap();
 
         assert_eq!(result.vertices[0], 28.07870);
         assert_eq!(result.vertices[1], -157.42495);
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn compute_first_face() {
-        let result = super::read_lines().unwrap();
+        let result = super::read_lines("assets/floor.obj").unwrap();
 
         let faces = result.compute_faces();
          

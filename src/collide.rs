@@ -11,7 +11,7 @@ impl AABB {
         let mut left_top_front: Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let mut right_bottom_back: Vec3 = glm::vec3(0.0, 0.0, 0.0);
 
-        for face in verts.chunks(3) {
+        for face in verts.chunks(8) {
             left_top_front.x = left_top_front.x.max(face[0]);
             left_top_front.y = left_top_front.y.max(face[1]);
             left_top_front.z = left_top_front.z.max(face[2]);

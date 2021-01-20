@@ -4,6 +4,7 @@ use super::glm_utils;
 use super::buffer;
 use super::vertex;
 use super::texture;
+use super::obj;
 
 pub struct Model {
     pub translation: Mat4x4,
@@ -64,20 +65,11 @@ impl Model {
         vertex::draw_arrays(self.num_verts);
     }
 
-    // pub fn floor_model(x_dim: usize, z_dim: usize, h: f32) -> Model {
-    //     let x = x_dim as f32;
-    //     let z = z_dim as f32;
-    //     let floor_verts: Vec<f32> = vec![
-    //         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-    //         x, 0.0, 0.0, 0.0, 1.0, 0.0,
-    //         0.0, 0.0, z, 0.0, 1.0, 0.0,
-
-    //         x, 0.0, z, 0.0, 1.0, 0.0,
-    //         x, 0.0, 0.0, 0.0, 1.0, 0.0,
-    //         0.0, 0.0, z, 0.0, 1.0, 0.0,
-    //     ];
-    //     Model::new(&floor_verts, glm::vec3(0.0, h, 0.0))
-    // }
+    pub fn floor_model(h: f32) -> Model {
+        let floor_model_data = obj::read_lines("assets/floor.obj").unwrap().compute_faces();
+        let gravel_texture = texture::prepare_textures("assets/gravel.jpg");
+        Model::new(&floor_model_data, glm::vec3(0.0, h, 0.0), gravel_texture)
+    }
 
     pub fn cube_texture() -> gl::types::GLuint {
         texture::prepare_textures("assets/container.jpg")

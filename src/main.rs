@@ -87,19 +87,20 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
+    let cube_texture = texture::prepare_textures("assets/bliss.png");
+
     // let thingy = obj::read_lines().unwrap().compute_faces();
     // let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
+    let newcube = model::Model::test_cube_model(glm::vec3(5.0, 1.5, 20.0), cube_texture);
 
-    let all_models = maps::read_map("assets/first.map");
-    // all_models.push(thingy_model);
+    let mut all_models = maps::read_map("assets/first.map");
+    all_models.push(newcube);
 
-    let cube_texture = model::Model::cube_texture();
-
-    let (program, light_program) = load_programs();
+    let (program, _light_program) = load_programs();
 
     let light_pos = glm::vec3(5.0, 1.5, 15.0);
-    let light_cube = model::Model::test_cube_model(light_pos, cube_texture);
-    let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
+    // let light_cube = model::Model::test_cube_model(light_pos, cube_texture);
+    // let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
 
     let projection = glm::perspective(
         WIDTH as f32 / HEIGHT as f32,
@@ -138,14 +139,14 @@ fn main() {
         controls.update(delta_millis, &all_models);
 
         let view = controls.camera.view();
-        light_program.program.set_used();
-        light_program.mvp.set_vp(&view, &projection);
-        {
-            let model = light_cube.translation * light_scale;
-            light_program.mvp.set_m(&model);
+        // light_program.program.set_used();
+        // light_program.mvp.set_vp(&view, &projection);
+        // {
+        //     let model = light_cube.translation * light_scale;
+        //     light_program.mvp.set_m(&model);
 
-            light_cube.draw();
-        }
+        //     light_cube.draw();
+        // }
 
         program.program.set_used();
         program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
@@ -155,7 +156,8 @@ fn main() {
         for cube in &all_models {
             let model = cube.translation;
             program.mvp.set_m(&model);
-            program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
+            program.lights.set_object_color(&glm::vec3(1.0, 1.0, 1.0));
+            // program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
 
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0);

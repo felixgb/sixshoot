@@ -18,6 +18,6 @@ pub fn read_map(path: &str) -> Vec<Model> {
         }
     }
 
-    // models.push(Model::floor_model(100, 100, 0.0));
+    models.push(Model::floor_model(0.0));
     models
 }
