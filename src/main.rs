@@ -17,6 +17,7 @@ use glfw::*;
 use program::{ModelProgram, LightProgram, load_shader_file};
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
+use image::EncodableLayout;
 
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
@@ -67,6 +68,32 @@ fn start_timer() -> impl FnMut() -> f32 {
         delta_millis = millis_since_start - last_frame;
         last_frame = millis_since_start;
         delta_millis
+    }
+}
+
+fn prepare_textures() {
+    let mut texture_id: gl::types::GLuint = 0;
+    let image = image::open("assets/container.jpg").unwrap().to_rgb8();
+    unsafe {
+        gl::GenTextures(1, &mut texture_id);
+        gl::BindTexture(gl::TEXTURE_2D, texture_id);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::MIRRORED_REPEAT as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::MIRRORED_REPEAT as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as gl::types::GLint);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGBA as gl::types::GLint,
+            512,
+            512,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            image.as_bytes().as_ptr() as *const gl::types::GLvoid
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+        gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 }
 
