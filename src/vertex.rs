@@ -5,19 +5,23 @@ pub fn vertex_attrib_pointers() {
 
     let location = 0;
     let offset = 0;
-    vertex_attrib_pointer(location, stride, offset);
+    vertex_attrib_pointer(location, TRI_VERTS as gl::types::GLint, stride, offset);
 
     let location = 1;
     let offset = offset + TRI_VERTS * std::mem::size_of::<f32>();
-    vertex_attrib_pointer(location, stride, offset);
+    vertex_attrib_pointer(location, TRI_VERTS as gl::types::GLint, stride, offset);
+
+    let location = 2;
+    let offset = offset + TRI_VERTS  * std::mem::size_of::<f32>();
+    vertex_attrib_pointer(location, 2, stride, offset);
 }
 
-fn vertex_attrib_pointer(location: usize, stride: usize, offset: usize) {
+fn vertex_attrib_pointer(location: usize, size: gl::types::GLint, stride: usize, offset: usize) {
     unsafe {
         gl::EnableVertexAttribArray(location as gl::types::GLuint);
         gl::VertexAttribPointer(
             location as gl::types::GLuint,
-            TRI_VERTS as gl::types::GLint,
+            size,
             gl::FLOAT,
             gl::FALSE,
             stride as gl::types::GLint,

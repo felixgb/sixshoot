@@ -71,7 +71,7 @@ fn start_timer() -> impl FnMut() -> f32 {
     }
 }
 
-fn prepare_textures() {
+fn prepare_textures() -> gl::types::GLuint {
     let mut texture_id: gl::types::GLuint = 0;
     let image = image::open("assets/container.jpg").unwrap().to_rgb8();
     unsafe {
@@ -84,17 +84,18 @@ fn prepare_textures() {
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            gl::RGBA as gl::types::GLint,
+            gl::RGB as gl::types::GLint,
             512,
             512,
             0,
-            gl::RGBA,
+            gl::RGB,
             gl::UNSIGNED_BYTE,
             image.as_bytes().as_ptr() as *const gl::types::GLvoid
         );
         gl::GenerateMipmap(gl::TEXTURE_2D);
         gl::BindTexture(gl::TEXTURE_2D, 0);
     }
+    texture_id
 }
 
 fn main() {
@@ -134,6 +135,8 @@ fn main() {
     let mut camera = camera::Camera::new();
     let mut controls = controls::Controls::new(&mut camera);
     let mut mark_time = start_timer();
+
+    let texture_id = prepare_textures();
 
     while !window.should_close() {
         let delta_millis = mark_time();
@@ -180,6 +183,10 @@ fn main() {
             program.mvp.set_m(&model);
             program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
 
+            unsafe {
+                gl::BindTexture(gl::TEXTURE_2D, texture_id);
+                gl::ActiveTexture(gl::TEXTURE0);
+            }
             cube.draw();
         }
 
