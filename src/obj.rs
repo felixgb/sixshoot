@@ -7,6 +7,8 @@ pub struct Mesh {
     vertex_normals: Vec<f32>,
     vertex_indices: Vec<usize>,
     vertex_normal_indices: Vec<usize>,
+    texture_coords: Vec<f32>,
+    face_indices: Vec<(usize, usize, usize)>,
 }
 
 impl Mesh {
@@ -15,7 +17,9 @@ impl Mesh {
             vertices: Vec::new(),
             vertex_normals: Vec::new(),
             vertex_indices: Vec::new(),
-            vertex_normal_indices: Vec::new()
+            vertex_normal_indices: Vec::new(),
+            texture_coords: Vec::new(),
+            face_indices: Vec::new(),
         }
     }
 
@@ -23,8 +27,8 @@ impl Mesh {
         let mut faces: Vec<f32> = Vec::new();
         assert_eq!(self.vertex_indices.len(), self.vertex_normal_indices.len());
 
-        for f in self.vertex_indices.iter().zip(&self.vertex_normal_indices).collect::<Vec<_>>().chunks(3) {
-            for (i, vni) in f {
+        for f in self.face_indices.chunks(3) {
+            for (i, tci, vni) in f {
                 let j = (*i - 1) * 3;
                 let x = self.vertices[j];
                 let y = self.vertices[j + 1];
@@ -40,6 +44,12 @@ impl Mesh {
                 faces.push(x2);
                 faces.push(y2);
                 faces.push(z2);
+
+                let j3 = (*tci - 1) * 2;
+                let x3 = self.texture_coords[j3];
+                let y3 = self.texture_coords[j3 + 1];
+                faces.push(x3);
+                faces.push(y3);
             }
         }
 
@@ -80,20 +90,22 @@ fn read_line(mesh: &mut Mesh, line: String) -> io::Result<&Mesh> {
             mesh.vertex_normals.push(y.parse().unwrap());
             mesh.vertex_normals.push(z.parse().unwrap());
         }
+        Some("vt") => {
+            let u = tokens.next().unwrap();
+            let v = tokens.next().unwrap();
+            mesh.texture_coords.push(u.parse().unwrap());
+            mesh.texture_coords.push(v.parse().unwrap());
+        }
         Some("f") => {
             let p1 = tokens.next().unwrap();
             let p2 = tokens.next().unwrap();
             let p3 = tokens.next().unwrap();
-            let (i1, vni1) = read_face_part(p1).unwrap();
-            let (i2, vni2) = read_face_part(p2).unwrap();
-            let (i3, vni3) = read_face_part(p3).unwrap();
-            mesh.vertex_indices.push(i1);
-            mesh.vertex_indices.push(i2);
-            mesh.vertex_indices.push(i3);
-
-            mesh.vertex_normal_indices.push(vni1);
-            mesh.vertex_normal_indices.push(vni2);
-            mesh.vertex_normal_indices.push(vni3);
+            let f1 = read_face_part(p1).unwrap();
+            let f2 = read_face_part(p2).unwrap();
+            let f3 = read_face_part(p3).unwrap();
+            mesh.face_indices.push(f1);
+            mesh.face_indices.push(f2);
+            mesh.face_indices.push(f3);
         }
         Some(_) => { }
         None => println!("empty line?"),
@@ -101,18 +113,18 @@ fn read_line(mesh: &mut Mesh, line: String) -> io::Result<&Mesh> {
     Ok(mesh)
 }
 
-fn read_face_part(token: &str) -> io::Result<(usize, usize)> {
+fn read_face_part(token: &str) -> io::Result<(usize, usize, usize)> {
     let mut toks = token.split('/');
 
     let vert_index_str = toks.next().unwrap();
     let vert_index = vert_index_str.parse().unwrap();
 
-    // discard vertex texture index
-    toks.next().unwrap();
+    let texture_coord_index_str = toks.next().unwrap();
+    let texture_coord_index = texture_coord_index_str.parse().unwrap();
 
     let vert_texture_index_str = toks.next().unwrap();
     let vert_texture_index = vert_texture_index_str.parse().unwrap();
-    Ok((vert_index, vert_texture_index))
+    Ok((vert_index, texture_coord_index, vert_texture_index))
 }
 
 mod tests {

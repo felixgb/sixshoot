@@ -1,7 +1,7 @@
 const TRI_VERTS: usize = 3;
 
 pub fn vertex_attrib_pointers() {
-    let stride = 2 * TRI_VERTS * std::mem::size_of::<f32>();
+    let stride = (2 * TRI_VERTS + 2) * std::mem::size_of::<f32>();
 
     let location = 0;
     let offset = 0;
