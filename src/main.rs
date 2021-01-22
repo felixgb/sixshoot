@@ -22,6 +22,9 @@ use std::time::SystemTime;
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
 
+const SHADOW_WIDTH: usize = 1024;
+const SHADOW_HEIGHT: usize = 1024;
+
 type Events = Receiver<(f64, WindowEvent)>;
 
 fn load_programs() -> (ModelProgram, LightProgram) {
@@ -82,6 +85,37 @@ fn main() {
         |s| window.get_proc_address(s) as *const std::os::raw::c_void
     );
 
+    // ---------------------------------------------------------------------
+
+    let mut depth_map_fbo_location: gl::types::GLuint = 0;
+    let mut depth_map_location: gl::types::GLuint = 0;
+    unsafe {
+        gl::GenFramebuffers(1, &mut depth_map_location);
+        gl::GenTextures(1, &mut depth_map_location);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::DEPTH_COMPONENT as gl::types::GLint,
+            SHADOW_WIDTH as gl::types::GLint,
+            SHADOW_HEIGHT as gl::types::GLint,
+            0,
+            gl::DEPTH_COMPONENT,
+            gl::FLOAT,
+            std::ptr::null_mut() as *const gl::types::GLvoid
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as gl::types::GLint);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
+        gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, depth_map_location, 0);
+        // gl::DrawBuffer(gl::NONE);
+        // gl::ReadBuffer(gl::NONE);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+    }
+
+    // ---------------------------------------------------------------------
+
     unsafe {
         gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
         gl::Enable(gl::DEPTH_TEST);
@@ -115,9 +149,9 @@ fn main() {
 
     while !window.should_close() {
         let delta_millis = mark_time();
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
+        // unsafe {
+        //     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        // }
 
         glfw.poll_events();
 
@@ -139,6 +173,18 @@ fn main() {
         controls.update(delta_millis, &all_models);
 
         let view = controls.camera.view();
+
+        unsafe {
+            gl::Viewport(0, 0, SHADOW_WIDTH as i32, SHADOW_HEIGHT as i32);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
+            gl::Clear(gl::DEPTH_BUFFER_BIT);
+            // RENDER SCENE
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+
+            // Reset
+            gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
         // light_program.program.set_used();
         // light_program.mvp.set_vp(&view, &projection);
         // {
