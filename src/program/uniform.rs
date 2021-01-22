@@ -52,4 +52,13 @@ impl Uniform {
             );
         }
     }
+
+    pub fn set_uniform_int(&self, value: i32) {
+        unsafe {
+            gl::Uniform1i(
+                self.id,
+                value
+            );
+        }
+    }
 }

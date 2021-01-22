@@ -1,8 +1,8 @@
 use std::fs;
 use super::model::Model;
 
-pub fn read_map(path: &str) -> Vec<Model> {
-    let texture_location = Model::cube_texture();
+pub fn read_map(path: &str, texture_location: u32) -> Vec<Model> {
+    // let texture_location = Model::cube_texture();
     let src = fs::read_to_string(path).unwrap();
     let mut models = Vec::new();
 

@@ -30,10 +30,11 @@ type Events = Receiver<(f64, WindowEvent)>;
 fn load_programs() -> (ModelProgram, LightProgram) {
     let vert_shader = load_shader_file("src/shaders/vert.shdr", gl::VERTEX_SHADER);
     let frag_shader = load_shader_file("src/shaders/frag.shdr", gl::FRAGMENT_SHADER);
+    let light_vert_shader = load_shader_file("src/shaders/light_vert.shdr", gl::VERTEX_SHADER);
     let light_frag_shader = load_shader_file("src/shaders/light_frag.shdr", gl::FRAGMENT_SHADER);
 
     let model_program = ModelProgram::from_shaders(&vert_shader, &frag_shader);
-    let light_program = LightProgram::from_shaders(&vert_shader, &light_frag_shader);
+    let light_program = LightProgram::from_shaders(&light_vert_shader, &light_frag_shader);
 
     (model_program, light_program)
 }
@@ -85,13 +86,61 @@ fn main() {
         |s| window.get_proc_address(s) as *const std::os::raw::c_void
     );
 
+    unsafe {
+        // gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
+        gl::Enable(gl::DEPTH_TEST);
+    }
+
+    let cube_texture = texture::prepare_textures("assets/container.jpg");
+
+    let newcube = model::Model::test_cube_model(glm::vec3(5.0, 1.5, 20.0), cube_texture);
+
+    let mut all_models = maps::read_map("assets/first.map", cube_texture);
+    all_models.push(newcube);
+
+    let (program, light_program) = load_programs();
+
+    let light_pos = glm::vec3(5.0, 1.5, 50.0);
+
+    let projection = glm::perspective(
+        WIDTH as f32 / HEIGHT as f32,
+        std::f32::consts::PI / 3.0,
+        0.1,
+        1000.0
+    );
+
+    let light_projection = glm::ortho(
+        -10.0,
+        10.0,
+        -10.0,
+        10.0,
+        0.1,
+        200.0
+    );
+
+    let light_view = glm::look_at(
+        &light_pos,
+        &glm::vec3(0.0, 0.0, 0.0),
+        &glm::vec3(0.0, 1.0, 0.0)
+    );
+
+    let mut camera = camera::Camera::new();
+    let mut controls = controls::Controls::new(&mut camera);
+    let mut mark_time = start_timer();
+
+    let light_u = program::uniform::get_uniform_location(program.program.id, "light_projection").unwrap();
+    let light_v = program::uniform::get_uniform_location(program.program.id, "light_view").unwrap();
+    let shadow_map_uniform = program::uniform::get_uniform_location(program.program.id, "shadowMap").unwrap();
+    let texture_uniform = program::uniform::get_uniform_location(program.program.id, "ourTexture").unwrap();
+
     // ---------------------------------------------------------------------
 
     let mut depth_map_fbo_location: gl::types::GLuint = 0;
     let mut depth_map_location: gl::types::GLuint = 0;
     unsafe {
-        gl::GenFramebuffers(1, &mut depth_map_location);
+        gl::GenFramebuffers(1, &mut depth_map_fbo_location);
         gl::GenTextures(1, &mut depth_map_location);
+        gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -106,53 +155,21 @@ fn main() {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as gl::types::GLint);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as gl::types::GLint);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::types::GLint);
         gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
         gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, depth_map_location, 0);
-        // gl::DrawBuffer(gl::NONE);
-        // gl::ReadBuffer(gl::NONE);
+        gl::DrawBuffer(gl::NONE);
+        gl::ReadBuffer(gl::NONE);
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
     }
 
+    program.program.set_used();
+    texture_uniform.set_uniform_int(0);
+    shadow_map_uniform.set_uniform_int(1);
+
     // ---------------------------------------------------------------------
-
-    unsafe {
-        gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
-        gl::Enable(gl::DEPTH_TEST);
-    }
-
-    let cube_texture = texture::prepare_textures("assets/bliss.png");
-
-    // let thingy = obj::read_lines().unwrap().compute_faces();
-    // let thingy_model = model::Model::new(&thingy, glm::vec3(5.0, 1.5, 20.0));
-    let newcube = model::Model::test_cube_model(glm::vec3(5.0, 1.5, 20.0), cube_texture);
-
-    let mut all_models = maps::read_map("assets/first.map");
-    all_models.push(newcube);
-
-    let (program, _light_program) = load_programs();
-
-    let light_pos = glm::vec3(5.0, 1.5, 15.0);
-    // let light_cube = model::Model::test_cube_model(light_pos, cube_texture);
-    // let light_scale = glm::scaling(&glm::vec3(0.1, 0.1, 0.1));
-
-    let projection = glm::perspective(
-        WIDTH as f32 / HEIGHT as f32,
-        std::f32::consts::PI / 3.0,
-        0.1,
-        1000.0
-    );
-
-    let mut camera = camera::Camera::new();
-    let mut controls = controls::Controls::new(&mut camera);
-    let mut mark_time = start_timer();
-
     while !window.should_close() {
         let delta_millis = mark_time();
-        // unsafe {
-        //     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        // }
-
         glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(&events) {
@@ -172,30 +189,40 @@ fn main() {
 
         controls.update(delta_millis, &all_models);
 
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+
         let view = controls.camera.view();
+
+        light_program.program.set_used();
+        light_program.mvp.set_vp(&light_view, &light_projection);
 
         unsafe {
             gl::Viewport(0, 0, SHADOW_WIDTH as i32, SHADOW_HEIGHT as i32);
             gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
             gl::Clear(gl::DEPTH_BUFFER_BIT);
-            // RENDER SCENE
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, cube_texture);
+            for cube in &all_models {
+                let model = cube.translation;
+                light_program.mvp.set_m(&model);
+                cube.draw();
+            }
+
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
             // Reset
             gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
-        // light_program.program.set_used();
-        // light_program.mvp.set_vp(&view, &projection);
-        // {
-        //     let model = light_cube.translation * light_scale;
-        //     light_program.mvp.set_m(&model);
 
-        //     light_cube.draw();
-        // }
-
-        program.program.set_used();
         program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
+        program.program.set_used();
+
+        light_u.set_uniform_matrix4fv(&light_projection);
+        light_v.set_uniform_matrix4fv(&light_view);
 
         program.mvp.set_vp(&view, &projection);
 
@@ -203,10 +230,12 @@ fn main() {
             let model = cube.translation;
             program.mvp.set_m(&model);
             program.lights.set_object_color(&glm::vec3(1.0, 1.0, 1.0));
-            // program.lights.set_object_color(&glm::vec3(1.0, 0.5, 0.31));
 
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0);
+                gl::BindTexture(gl::TEXTURE_2D, cube_texture);
+                gl::ActiveTexture(gl::TEXTURE1);
+                gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
             }
             cube.draw();
         }
