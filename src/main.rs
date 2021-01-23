@@ -98,8 +98,6 @@ fn main() {
 
     let (program, light_program) = load_programs();
 
-    // let light_pos = glm::vec3(5.0, 10.0, 50.0);
-
     let projection = glm::perspective(
         WIDTH as f32 / HEIGHT as f32,
         std::f32::consts::PI / 3.0,
@@ -108,23 +106,23 @@ fn main() {
     ); 
 
     let light_projection = glm::ortho(
-        -10.0,
-        10.0,
-        -10.0,
-        10.0,
+        -25.0,
+        25.0,
+        -25.0,
+        25.0,
         0.1,
-        200.0
+        50.0
     );
 
-    let lightInvView = glm::vec3(-0.5, 2.0, 2.0);
+    let light_inv_view = glm::vec3(0.0, 12.0, 25.0);
 
     let light_view = glm::look_at(
-        &lightInvView,
+        &light_inv_view,
         &glm::vec3(0.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0)
     );
 
-    let biasMatrix = glm::mat4(
+    let bias_matrix = glm::mat4(
         0.5, 0.0, 0.0, 0.0, 
         0.0, 0.5, 0.0, 0.0,
         0.0, 0.0, 0.5, 0.0,
@@ -135,7 +133,7 @@ fn main() {
     let mut controls = controls::Controls::new(&mut camera);
     let mut mark_time = start_timer();
 
-    let depthBiasLocation = get_uniform_location(program.program.id, "depthBiasMVP").unwrap();
+    let depth_bias_loc = get_uniform_location(program.program.id, "depthBiasMVP").unwrap();
     let shadow_map_uniform = get_uniform_location(program.program.id, "shadowMap").unwrap();
     let texture_uniform = get_uniform_location(program.program.id, "ourTexture").unwrap();
 
@@ -170,7 +168,7 @@ fn main() {
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, depth_map_location, 0);
 
         gl::DrawBuffer(gl::NONE);
-        // gl::ReadBuffer(gl::NONE);
+        gl::ReadBuffer(gl::NONE);
         // gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
             panic!("framebuffer broken");
@@ -227,21 +225,14 @@ fn main() {
 
         controls.update(delta_millis, &all_models);
 
-        unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
-            gl::Viewport(0, 0, SHADOW_WIDTH as i32, SHADOW_HEIGHT as i32);
-            gl::Enable(gl::CULL_FACE);
-            gl::CullFace(gl::BACK);
-            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-
-        let view = controls.camera.view();
-
         light_program.program.set_used();
         light_program.mvp.set_vp(&light_view, &light_projection);
 
         unsafe {
-            // gl::Clear(gl::DEPTH_BUFFER_BIT);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
+            gl::Viewport(0, 0, SHADOW_WIDTH as i32, SHADOW_HEIGHT as i32);
+            // gl::Enable(gl::CULL_FACE);
+            // gl::CullFace(gl::BACK);
 
             texture_uniform.set_uniform_int(0);
             gl::ActiveTexture(gl::TEXTURE0);
@@ -264,6 +255,9 @@ fn main() {
             gl::Disable(gl::CULL_FACE);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
+
+        let view = controls.camera.view();
+
         program.program.set_used();
         // program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
 
@@ -275,10 +269,10 @@ fn main() {
         for cube in &all_models {
             let model = cube.translation;
 
-            let depthModelMatrix = glm::Mat4::identity();
-            let depthMVP = light_projection * light_view * depthModelMatrix;
-            let depthBiasMVP = biasMatrix * depthMVP;
-            depthBiasLocation.set_uniform_matrix4fv(&depthBiasMVP);
+            let depth_model_matrix = glm::Mat4::identity();
+            let depth_mvp = light_projection * light_view * depth_model_matrix;
+            let depth_bias_mvp = bias_matrix * depth_mvp;
+            depth_bias_loc.set_uniform_matrix4fv(&depth_bias_mvp);
 
             program.mvp.set_m(&model);
             // program.lights.set_object_color(&glm::vec3(1.0, 1.0, 1.0));
@@ -293,11 +287,6 @@ fn main() {
             }
             cube.draw_no_textures();
         }
-        unsafe {
-            gl::DisableVertexAttribArray(0);
-            gl::DisableVertexAttribArray(1);
-            gl::DisableVertexAttribArray(2);
-        }
 
         unsafe {
             gl::Viewport(0, 0, 512, 512);
@@ -309,10 +298,9 @@ fn main() {
         }
         debug_texture_loc.set_uniform_int(0);
         unsafe {
-            gl::BindBuffer(gl::ARRAY_BUFFER, quad_vertexbuffer);
             vertex::vertex_attrib_pointer(0, 3, 0, 0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, quad_vertexbuffer);
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
-            gl::DisableVertexAttribArray(0);
         }
 
         window.swap_buffers();

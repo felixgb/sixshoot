@@ -38,7 +38,7 @@ impl Model {
         Model { 
             translation: glm::translation(&pos),
             aabb,
-            num_verts: (faces.len() / 3),
+            num_verts: (faces.len() / 8) * 3,
             _position_vbo: vbo,
             vao,
             texture_id
