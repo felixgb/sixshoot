@@ -8,7 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform mat4 depthBiasMVP;
+uniform mat4 light_space;
 
 out vec3 FragPos;
 out vec3 Normal;
@@ -18,8 +18,8 @@ out vec4 frag_pos_light_space;
 void main()
 {
   FragPos = vec3(model * vec4(Position, 1.0));
-  Normal = aNormal;
+  Normal = transpose(inverse(mat3(model))) * aNormal;
   TexCoord = aTexCoord;
-  frag_pos_light_space = depthBiasMVP * vec4(Position, 1.0);
+  frag_pos_light_space = light_space * vec4(FragPos, 1.0);
   gl_Position = projection * view * model * vec4(Position, 1.0);
 }

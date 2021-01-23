@@ -114,11 +114,11 @@ fn main() {
         50.0
     );
 
-    let light_inv_view = glm::vec3(0.0, 12.0, 25.0);
+    let light_inv_view = glm::vec3(25.0, 25.0, 50.0);
 
     let light_view = glm::look_at(
         &light_inv_view,
-        &glm::vec3(0.0, 0.0, 0.0),
+        &glm::vec3(25.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0)
     );
 
@@ -133,7 +133,7 @@ fn main() {
     let mut controls = controls::Controls::new(&mut camera);
     let mut mark_time = start_timer();
 
-    let depth_bias_loc = get_uniform_location(program.program.id, "depthBiasMVP").unwrap();
+    let depth_bias_loc = get_uniform_location(program.program.id, "light_space").unwrap();
     let shadow_map_uniform = get_uniform_location(program.program.id, "shadowMap").unwrap();
     let texture_uniform = get_uniform_location(program.program.id, "ourTexture").unwrap();
 
@@ -259,23 +259,20 @@ fn main() {
         let view = controls.camera.view();
 
         program.program.set_used();
-        // program.lights.set_light(&light_pos, &glm::vec3(1.0, 1.0, 1.0));
+        program.lights.light_pos.set_uniform_vec3(&light_inv_view);
 
         // light_u.set_uniform_matrix4fv(&light_projection);
         // light_v.set_uniform_matrix4fv(&light_view);
 
         program.mvp.set_vp(&view, &projection);
 
+        let depth_mvp = light_projection * light_view;
+        depth_bias_loc.set_uniform_matrix4fv(&depth_mvp);
+
         for cube in &all_models {
             let model = cube.translation;
 
-            let depth_model_matrix = glm::Mat4::identity();
-            let depth_mvp = light_projection * light_view * depth_model_matrix;
-            let depth_bias_mvp = bias_matrix * depth_mvp;
-            depth_bias_loc.set_uniform_matrix4fv(&depth_bias_mvp);
-
             program.mvp.set_m(&model);
-            // program.lights.set_object_color(&glm::vec3(1.0, 1.0, 1.0));
 
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0);
@@ -284,6 +281,7 @@ fn main() {
                 gl::ActiveTexture(gl::TEXTURE1);
                 gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
                 shadow_map_uniform.set_uniform_int(0);
+                program.lights.view_pos.set_uniform_vec3(&controls.pos_now());
             }
             cube.draw_no_textures();
         }

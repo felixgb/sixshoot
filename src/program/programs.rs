@@ -27,26 +27,15 @@ impl MVPUniforms {
 }
 
 pub struct LightUniforms {
-    color_loc: Uniform,
-    pos_loc: Uniform,
-    object_color_loc: Uniform,
+    pub view_pos: Uniform,
+    pub light_pos: Uniform,
 }
 
 impl LightUniforms {
     pub fn for_program(program: &Program) -> LightUniforms {
-        let color_loc = get_uniform_location(program.id, "light_color").unwrap();
-        let object_color_loc = get_uniform_location(program.id, "object_color").unwrap();
-        let pos_loc = get_uniform_location(program.id, "light_pos").unwrap();
-        LightUniforms { color_loc, object_color_loc, pos_loc, }
-    }
-
-    pub fn set_light(&self, pos: &Vec3, color: &Vec3) {
-        self.color_loc.set_uniform_vec3(color);
-        self.pos_loc.set_uniform_vec3(pos);
-    }
-
-    pub fn set_object_color(&self, color: &Vec3) {
-        self.object_color_loc.set_uniform_vec3(color);
+        let view_pos = get_uniform_location(program.id, "view_pos").unwrap();
+        let light_pos = get_uniform_location(program.id, "light_pos").unwrap();
+        LightUniforms { view_pos, light_pos }
     }
 }
 
@@ -66,14 +55,14 @@ impl LightProgram {
 pub struct ModelProgram {
     pub program: Program,
     pub mvp: MVPUniforms,
-    // pub lights: LightUniforms,
+    pub lights: LightUniforms,
 }
 
 impl ModelProgram {
     pub fn from_shaders(vert: &Shader, frag: &Shader) -> ModelProgram {
         let program = Program::from_shaders(vert, frag).unwrap();
         let mvp = MVPUniforms::for_program(&program);
-        // let lights = LightUniforms::for_program(&program);
-        ModelProgram { program, mvp }
+        let lights = LightUniforms::for_program(&program);
+        ModelProgram { program, mvp, lights }
     }
 }

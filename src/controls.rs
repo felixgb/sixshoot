@@ -81,6 +81,10 @@ impl<'a> Controls<'a> {
         }
     }
 
+    pub fn pos_now(&self) -> glm::Vec3 {
+        self.camera.pos
+    }
+
     pub fn key_move_callback(&mut self, key: Key, action: Action) {
         match action {
             Action::Press => {
