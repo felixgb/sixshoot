@@ -23,8 +23,8 @@ use program::uniform::get_uniform_location;
 const HEIGHT: u32 = 1080;
 const WIDTH: u32 = 1920;
 
-const SHADOW_WIDTH: usize = 1024;
-const SHADOW_HEIGHT: usize = 1024;
+const SHADOW_WIDTH: usize = 2048;
+const SHADOW_HEIGHT: usize = 2048;
 
 type Events = Receiver<(f64, WindowEvent)>;
 
@@ -89,7 +89,6 @@ fn main() {
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
-        gl::DepthFunc(gl::LESS);
     }
 
     let cube_texture = texture::prepare_textures("assets/container.jpg");
@@ -110,15 +109,15 @@ fn main() {
         50.0,
         -50.0,
         50.0,
-        0.1,
-        50.0
+        1.0,
+        75.0
     );
 
-    let light_inv_view = glm::vec3(25.0, 25.0, 50.0);
+    let light_inv_view = glm::vec3(25.0, 25.0, 60.0);
 
     let light_view = glm::look_at(
         &light_inv_view,
-        &glm::vec3(25.0, 0.0, 0.0),
+        &glm::vec3(15.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0)
     );
 
@@ -233,7 +232,7 @@ fn main() {
             gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
             gl::Viewport(0, 0, SHADOW_WIDTH as i32, SHADOW_HEIGHT as i32);
             // gl::Enable(gl::CULL_FACE);
-            // gl::CullFace(gl::BACK);
+            // gl::CullFace(gl::FRONT);
 
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
@@ -248,8 +247,8 @@ fn main() {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
             // Reset
+            // gl::Disable(gl::CULL_FACE);
             gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
-            gl::Disable(gl::CULL_FACE);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
