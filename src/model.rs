@@ -3,7 +3,6 @@ use super::collide::AABB;
 use super::glm_utils;
 use super::buffer;
 use super::vertex;
-use super::texture;
 use super::obj;
 
 pub struct Model {
@@ -65,14 +64,18 @@ impl Model {
         vertex::draw_arrays(self.num_verts);
     }
 
-    pub fn floor_model(h: f32) -> Model {
-        let floor_model_data = obj::read_lines("assets/floor.obj").unwrap().compute_faces();
-        let gravel_texture = texture::prepare_textures("assets/gravel.jpg");
-        Model::new(&floor_model_data, glm::vec3(0.0, h, 0.0), gravel_texture)
+    pub fn draw_no_textures(&self) {
+        unsafe {
+            gl::BindVertexArray(self.vao);
+        }
+
+        vertex::draw_arrays(self.num_verts);
     }
 
-    pub fn cube_texture() -> gl::types::GLuint {
-        texture::prepare_textures("assets/container.jpg")
+    pub fn floor_model(h: f32) -> Model {
+        let floor_model_data = obj::read_lines("assets/floor.obj").unwrap().compute_faces();
+        // let gravel_texture = texture::prepare_textures("assets/gravel.jpg");
+        Model::new(&floor_model_data, glm::vec3(0.0, h, 0.0), 0)
     }
 
     pub fn test_cube_model(pos: Vec3, texture_location: gl::types::GLuint) -> Model {

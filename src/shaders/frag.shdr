@@ -1,37 +1,37 @@
 #version 330 core
 
-out vec4 FragColor;
+layout(location = 0) out vec3 color;
 
 uniform vec3 object_color;
 uniform vec3 light_color;
 uniform vec3 light_pos;
 
 uniform sampler2D ourTexture;
-uniform sampler2D shadowMap;
+uniform sampler2DShadow shadowMap;
 
 in vec4 frag_pos_light_space;
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoord;
 
-float calculate_shadow(vec4 frag_pos_light_space)
-{
-  vec3 projCoords = frag_pos_light_space.xyz / frag_pos_light_space.w;
-
-  // transform to [0,1] range
-  projCoords = projCoords * 0.5 + 0.5;
-
-  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-  float closestDepth = texture(shadowMap, projCoords.xy).r; 
-
-  // get depth of current fragment from light's perspective
-  float currentDepth = projCoords.z;
-
-  // check whether current frag pos is in shadow
-  float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
-
-  return shadow;
-}
+// float calculate_shadow(vec4 frag_pos_light_space)
+// {
+//   vec3 projCoords = frag_pos_light_space.xyz / frag_pos_light_space.w;
+// 
+//   // transform to [0,1] range
+//   projCoords = projCoords * 0.5 + 0.5;
+// 
+//   // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+//   float closestDepth = texture(shadowMap, projCoords.xy).r; 
+// 
+//   // get depth of current fragment from light's perspective
+//   float currentDepth = projCoords.z;
+// 
+//   // check whether current frag pos is in shadow
+//   float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+// 
+//   return shadow;
+// }
 
 void main()
 {
@@ -43,8 +43,15 @@ void main()
   float diff = max(dot(norm, light_dir), 0.0);
   vec3 diffuse = diff * light_color;
 
-  float shadow = calculate_shadow(frag_pos_light_space);
-  vec3 lighting = (ambient + (1.0 - shadow) * diffuse) * object_color;
+  vec3 lighting = (ambient + diffuse) * object_color;
 
-  FragColor = texture(ourTexture, TexCoord) * vec4(lighting, 1.0);
+  float thing = frag_pos_light_space.z / frag_pos_light_space.w;
+  vec3 thing2 = vec3(frag_pos_light_space.xy, thing);
+  float vis = texture(shadowMap, thing2);
+
+  vec3 light_color = vec3(1.0, 1.0, 1.0);
+  vec3 material = texture(ourTexture, TexCoord).rgb;
+
+  // FragColor = (1.0 - vis) * texture(ourTexture, TexCoord) * vec4(lighting, 1.0);
+  color = (1 - vis) * material * light_color;
 }

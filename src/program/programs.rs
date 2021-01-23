@@ -66,14 +66,14 @@ impl LightProgram {
 pub struct ModelProgram {
     pub program: Program,
     pub mvp: MVPUniforms,
-    pub lights: LightUniforms,
+    // pub lights: LightUniforms,
 }
 
 impl ModelProgram {
     pub fn from_shaders(vert: &Shader, frag: &Shader) -> ModelProgram {
         let program = Program::from_shaders(vert, frag).unwrap();
         let mvp = MVPUniforms::for_program(&program);
-        let lights = LightUniforms::for_program(&program);
-        ModelProgram { program, mvp, lights }
+        // let lights = LightUniforms::for_program(&program);
+        ModelProgram { program, mvp }
     }
 }

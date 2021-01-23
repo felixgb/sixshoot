@@ -16,7 +16,7 @@ pub fn vertex_attrib_pointers() {
     vertex_attrib_pointer(location, 2, stride, offset);
 }
 
-fn vertex_attrib_pointer(location: usize, size: gl::types::GLint, stride: usize, offset: usize) {
+pub fn vertex_attrib_pointer(location: usize, size: gl::types::GLint, stride: usize, offset: usize) {
     unsafe {
         gl::EnableVertexAttribArray(location as gl::types::GLuint);
         gl::VertexAttribPointer(
