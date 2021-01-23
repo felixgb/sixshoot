@@ -106,10 +106,10 @@ fn main() {
     ); 
 
     let light_projection = glm::ortho(
-        -25.0,
-        25.0,
-        -25.0,
-        25.0,
+        -50.0,
+        50.0,
+        -50.0,
+        50.0,
         0.1,
         50.0
     );
@@ -120,13 +120,6 @@ fn main() {
         &light_inv_view,
         &glm::vec3(25.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0)
-    );
-
-    let bias_matrix = glm::mat4(
-        0.5, 0.0, 0.0, 0.0, 
-        0.0, 0.5, 0.0, 0.0,
-        0.0, 0.0, 0.5, 0.0,
-        0.5, 0.5, 0.5, 1.0
     );
 
     let mut camera = camera::Camera::new();
@@ -143,7 +136,6 @@ fn main() {
     let mut depth_map_location: gl::types::GLuint = 0;
     unsafe {
         gl::GenFramebuffers(1, &mut depth_map_fbo_location);
-        gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
 
         gl::GenTextures(1, &mut depth_map_location);
         gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
@@ -161,15 +153,17 @@ fn main() {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as gl::types::GLint);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as gl::types::GLint);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_COMPARE_FUNC, gl::LEQUAL as gl::types::GLint);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_COMPARE_MODE, gl::COMPARE_REF_TO_TEXTURE as gl::types::GLint);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as gl::types::GLint);
+        // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_COMPARE_FUNC, gl::LEQUAL as gl::types::GLint);
+        // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_COMPARE_MODE, gl::COMPARE_REF_TO_TEXTURE as gl::types::GLint);
 
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, depth_map_location, 0);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, depth_map_fbo_location);
+        gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, depth_map_location, 0);
 
         gl::DrawBuffer(gl::NONE);
         gl::ReadBuffer(gl::NONE);
-        // gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
             panic!("framebuffer broken");
         }
@@ -203,6 +197,13 @@ fn main() {
     let debug_program = program::Program::from_shaders(&debug_v, &debug_f).unwrap();
     let debug_texture_loc = get_uniform_location(debug_program.id, "test_texture").unwrap();
 
+    program.program.set_used();
+    texture_uniform.set_uniform_int(0);
+    shadow_map_uniform.set_uniform_int(1);
+
+    debug_program.set_used();
+    debug_texture_loc.set_uniform_int(0);
+
     // ---------------------------------------------------------------------
     while !window.should_close() {
         let delta_millis = mark_time();
@@ -234,7 +235,6 @@ fn main() {
             // gl::Enable(gl::CULL_FACE);
             // gl::CullFace(gl::BACK);
 
-            texture_uniform.set_uniform_int(0);
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
 
@@ -249,9 +249,6 @@ fn main() {
 
             // Reset
             gl::Viewport(0, 0, WIDTH as i32, HEIGHT as i32);
-        }
-
-        unsafe {
             gl::Disable(gl::CULL_FACE);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
@@ -259,13 +256,9 @@ fn main() {
         let view = controls.camera.view();
 
         program.program.set_used();
-        program.lights.light_pos.set_uniform_vec3(&light_inv_view);
-
-        // light_u.set_uniform_matrix4fv(&light_projection);
-        // light_v.set_uniform_matrix4fv(&light_view);
-
         program.mvp.set_vp(&view, &projection);
-
+        program.lights.light_pos.set_uniform_vec3(&light_inv_view);
+        program.lights.view_pos.set_uniform_vec3(&controls.pos_now());
         let depth_mvp = light_projection * light_view;
         depth_bias_loc.set_uniform_matrix4fv(&depth_mvp);
 
@@ -277,29 +270,25 @@ fn main() {
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0);
                 gl::BindTexture(gl::TEXTURE_2D, cube_texture);
-                texture_uniform.set_uniform_int(0);
                 gl::ActiveTexture(gl::TEXTURE1);
                 gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
-                shadow_map_uniform.set_uniform_int(0);
-                program.lights.view_pos.set_uniform_vec3(&controls.pos_now());
             }
             cube.draw_no_textures();
         }
 
-        unsafe {
-            gl::Viewport(0, 0, 512, 512);
-        }
-        debug_program.set_used();
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
-        }
-        debug_texture_loc.set_uniform_int(0);
-        unsafe {
-            vertex::vertex_attrib_pointer(0, 3, 0, 0);
-            gl::BindBuffer(gl::ARRAY_BUFFER, quad_vertexbuffer);
-            gl::DrawArrays(gl::TRIANGLES, 0, 6);
-        }
+        // unsafe {
+        //     gl::Viewport(0, 0, 512, 512);
+        // }
+        // debug_program.set_used();
+        // unsafe {
+        //     gl::ActiveTexture(gl::TEXTURE0);
+        //     gl::BindTexture(gl::TEXTURE_2D, depth_map_location);
+        // }
+        // unsafe {
+        //     vertex::vertex_attrib_pointer(0, 3, 0, 0);
+        //     gl::BindBuffer(gl::ARRAY_BUFFER, quad_vertexbuffer);
+        //     gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        // }
 
         window.swap_buffers();
     }
